@@ -1,0 +1,1712 @@
+<!doctype html>
+<html lang="et">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Riigikogu valimiste mudel</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Riigikogu valimistulemuse mudel: kandidaatide hääled ringkonniti, isiku-, ringkonna- ja kompensatsioonimandaadid ning asendusliikmete järjekord Riigikogu valimise seaduse järgi.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap">
+<style>
+:root {
+  /* Paigutus: tööriistaleht — päis, kokkuvõte (poolring + erakonnatabel), vahekaardid; kuni 1200px, kitsal ekraanil üks veerg */
+  --paper: #f2f5f8;
+  --surface: #ffffff;
+  --sunk: #e8edf2;
+  --ink: #0f1b2b;
+  --ink-2: #455468;
+  --ink-3: #6f7f93;
+  --rule: #d3dbe4;
+  --rule-2: #b3c0ce;
+  --accent: #0b63b6;
+  --accent-ink: #ffffff;
+  --accent-soft: #e1edf9;
+  --ok: #16784a;
+  --ok-soft: #e0f2e8;
+  --warn: #965700;
+  --warn-soft: #fbefd8;
+  --bad: #b1261d;
+  --bad-soft: #fbe4e1;
+  --pen: #1f45a3;
+  --seat-edge: rgba(15, 27, 43, .3);
+  --shadow: 0 1px 2px rgba(15, 27, 43, .06), 0 6px 20px rgba(15, 27, 43, .06);
+  --f-display: "Bricolage Grotesque", "IBM Plex Sans", system-ui, sans-serif;
+  --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --r: 8px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0b1118; --surface: #121a24; --sunk: #0e151d; --ink: #e7edf4; --ink-2: #a8b5c5; --ink-3: #8090a2;
+    --rule: #223041; --rule-2: #364a5e; --accent: #62a9f3; --accent-ink: #06121f; --accent-soft: #14304d;
+    --ok: #52c78f; --ok-soft: #10301f; --warn: #f2a84d; --warn-soft: #33240c; --bad: #f47b70; --bad-soft: #3a1613;
+    --pen: #9bbcff; --seat-edge: rgba(255, 255, 255, .25); --shadow: 0 1px 2px rgba(0, 0, 0, .35);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0b1118; --surface: #121a24; --sunk: #0e151d; --ink: #e7edf4; --ink-2: #a8b5c5; --ink-3: #8090a2;
+  --rule: #223041; --rule-2: #364a5e; --accent: #62a9f3; --accent-ink: #06121f; --accent-soft: #14304d;
+  --ok: #52c78f; --ok-soft: #10301f; --warn: #f2a84d; --warn-soft: #33240c; --bad: #f47b70; --bad-soft: #3a1613;
+  --pen: #9bbcff; --seat-edge: rgba(255, 255, 255, .25); --shadow: 0 1px 2px rgba(0, 0, 0, .35);
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 15px/1.5 var(--f-body); }
+.wrap { max-width: 1200px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; letter-spacing: -.01em; }
+h1 { font-size: clamp(1.9rem, 4.2vw, 2.9rem); font-weight: 750; line-height: 1.05; }
+h2 { font-size: 1.35rem; font-weight: 700; line-height: 1.2; }
+h3 { font-size: 1.05rem; font-weight: 700; line-height: 1.25; }
+p { margin: 0; }
+a { color: var(--accent); }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.num, .tnum { font-variant-numeric: tabular-nums; }
+.mono { font-family: var(--f-mono); }
+.muted { color: var(--ink-2); }
+.small { font-size: .84rem; }
+.eyebrow { font: 600 .74rem/1.2 var(--f-body); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+.vh { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* nupud */
+.btn { display: inline-flex; align-items: center; gap: .4em; border: 1px solid var(--rule-2); background: var(--surface); color: var(--ink); border-radius: 6px; padding: .42em .8em; font-size: .88rem; font-weight: 500; line-height: 1.2; }
+.btn:hover { border-color: var(--ink-3); }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn-primary:hover { filter: brightness(1.06); border-color: var(--accent); }
+.btn-ghost { background: transparent; border-color: transparent; color: var(--ink-2); }
+.btn-ghost:hover { background: var(--sunk); border-color: transparent; }
+.btn-sm { font-size: .8rem; padding: .28em .6em; }
+.btn[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+.link { background: none; border: 0; padding: 0; color: var(--accent); text-decoration: underline; text-underline-offset: 2px; font-size: inherit; }
+
+/* päis */
+.top { padding-block: 28px 18px; }
+.top-row { display: flex; flex-wrap: wrap; gap: 18px 32px; align-items: flex-end; justify-content: space-between; }
+.brand { min-width: 0; max-width: 46rem; display: grid; gap: 10px; }
+.lede { color: var(--ink-2); font-size: 1.02rem; max-width: 62ch; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.badge { display: inline-flex; align-items: center; gap: .45em; font-size: .8rem; font-weight: 600; padding: .32em .7em; border-radius: 999px; background: var(--ok-soft); color: var(--ok); }
+.badge.is-mod { background: var(--warn-soft); color: var(--warn); }
+.badge::before { content: ""; width: .5em; height: .5em; border-radius: 50%; background: currentColor; }
+
+/* kokkuvõte */
+.summary { display: grid; grid-template-columns: minmax(320px, 400px) minmax(0, 1fr); gap: 18px; margin-top: 4px; }
+.card { background: var(--surface); border: 1px solid var(--rule); border-radius: var(--r); box-shadow: var(--shadow); }
+.hemi-card { padding: 16px 18px 14px; display: grid; gap: 12px; align-content: start; min-width: 0; grid-template-columns: minmax(0, 1fr); grid-template-areas: "hemi" "legend" "warns" "kpis"; }
+.hemi { grid-area: hemi; width: 100%; height: auto; display: block; max-width: 100%; }
+.legend { grid-area: legend; }
+.warns { grid-area: warns; }
+.kpis { grid-area: kpis; }
+.seat { cursor: pointer; }
+.seat-D { stroke: var(--seat-edge); }
+.seat:hover { filter: brightness(1.12); }
+.hemi-n { font: 750 0.26px/1 var(--f-display); fill: var(--ink); text-anchor: middle; }
+.hemi-l { font: 500 0.062px/1 var(--f-body); fill: var(--ink-2); text-anchor: middle; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: .8rem; color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.g { width: 13px; height: 13px; flex: none; }
+.kpis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 16px; border-top: 1px solid var(--rule); padding-top: 12px; }
+.kpi { display: grid; gap: 2px; min-width: 0; }
+.kpi b { font: 650 1.15rem/1.2 var(--f-display); font-variant-numeric: tabular-nums; }
+.kpi small { color: var(--ink-3); font-size: .76rem; }
+.warns { display: grid; gap: 6px; }
+.warn { font-size: .84rem; padding: .45em .7em; border-radius: 6px; background: var(--warn-soft); color: var(--warn); }
+.party-card { padding: 6px 0 4px; min-width: 0; }
+.scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+table { border-collapse: collapse; width: 100%; }
+.tbl th, .tbl td { padding: .45rem .6rem; text-align: left; border-bottom: 1px solid var(--rule); vertical-align: middle; }
+.tbl thead th { font-size: .72rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--ink-3); white-space: nowrap; }
+.tbl td.num, .tbl th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tbl tbody tr:last-child td { border-bottom: 0; }
+.tbl tfoot td { font-weight: 600; border-top: 1px solid var(--rule-2); border-bottom: 0; }
+.pname { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.sw { width: 12px; height: 12px; border-radius: 3px; background: var(--pc); flex: none; box-shadow: inset 0 0 0 1px var(--seat-edge); }
+.ptable .pfull { font-weight: 600; }
+.ptable .pshort { color: var(--ink-3); font-size: .78rem; }
+.ptable tr.below td { color: var(--ink-3); }
+.ptable tr.below .pfull { font-weight: 500; }
+.seatbar { display: flex; height: 8px; border-radius: 2px; overflow: hidden; background: var(--sunk); min-width: 70px; }
+.seatbar i { display: block; height: 100%; }
+.total { font: 700 1.05rem/1 var(--f-display); }
+.delta { font-size: .76rem; font-weight: 600; margin-left: 4px; }
+.delta.up { color: var(--ok); }
+.delta.down { color: var(--bad); }
+.tag { display: inline-block; font-size: .7rem; font-weight: 600; padding: .1em .45em; border-radius: 4px; background: var(--sunk); color: var(--ink-2); white-space: nowrap; }
+.tag.warn-tag { background: var(--warn-soft); color: var(--warn); }
+.tag.ok-tag { background: var(--ok-soft); color: var(--ok); }
+
+/* vahekaardid */
+.tabs { display: flex; gap: 2px; margin-top: 26px; border-bottom: 1px solid var(--rule-2); overflow-x: auto; scrollbar-width: thin; }
+.tab { background: none; border: 0; border-bottom: 3px solid transparent; padding: .7em .95em .6em; font-weight: 600; font-size: .93rem; color: var(--ink-2); white-space: nowrap; }
+.tab:hover { color: var(--ink); }
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.panel { padding-block: 20px 56px; }
+.panel-intro { color: var(--ink-2); max-width: 75ch; margin-bottom: 16px; }
+
+/* ringkonna valik */
+.dpicker { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; }
+.dpick { display: grid; gap: 3px; text-align: left; border: 1px solid var(--rule); background: var(--surface); border-radius: 6px; padding: 7px 9px 8px; min-width: 0; }
+.dpick:hover { border-color: var(--rule-2); }
+.dpick.is-on { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.dp-top { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; }
+.dp-nr { font: 700 1.05rem/1 var(--f-display); }
+.dp-m { font-size: .72rem; color: var(--ink-3); white-space: nowrap; }
+.dp-name { font-size: .76rem; color: var(--ink-2); line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dp-bar { display: flex; height: 5px; border-radius: 2px; overflow: hidden; background: var(--sunk); gap: 1px; }
+.dp-bar i { display: block; height: 100%; }
+.dp-bar i.comp { background: repeating-linear-gradient(135deg, var(--rule-2) 0 2px, transparent 2px 4px); }
+
+.dhead { display: flex; flex-wrap: wrap; gap: 14px 28px; align-items: flex-end; justify-content: space-between; margin: 22px 0 12px; }
+.dhead-t { display: grid; gap: 4px; min-width: 0; }
+.dstats { display: flex; flex-wrap: wrap; gap: 8px 22px; margin: 0; }
+.dstats div { display: grid; gap: 1px; }
+.dstats dt { font-size: .72rem; color: var(--ink-3); letter-spacing: .04em; text-transform: uppercase; font-weight: 600; }
+.dstats dd { margin: 0; font: 600 1rem/1.25 var(--f-body); font-variant-numeric: tabular-nums; }
+.dstats dd small { font-weight: 400; color: var(--ink-3); font-size: .74rem; display: block; }
+.tools { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin-bottom: 14px; padding: 10px 12px; background: var(--sunk); border-radius: var(--r); }
+.tools label { font-size: .82rem; color: var(--ink-2); }
+.tools .grow { flex: 1 1 240px; min-width: 0; position: relative; }
+.inp { border: 1px solid var(--rule-2); background: var(--surface); border-radius: 6px; padding: .4em .6em; font-size: .9rem; width: 100%; }
+select.inp { width: auto; }
+.qres { position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 5; background: var(--surface); border: 1px solid var(--rule-2); border-radius: 8px; box-shadow: var(--shadow); max-height: 320px; overflow: auto; padding: 4px; }
+.qres button { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 10px; width: 100%; text-align: left; background: none; border: 0; border-radius: 6px; padding: 6px 8px; }
+.qres button:hover, .qres button:focus-visible { background: var(--sunk); }
+.qres .qm { grid-column: 2; font-size: .76rem; color: var(--ink-3); }
+
+/* erakonna plokk */
+.pblocks { display: grid; gap: 14px; }
+.pblock { background: var(--surface); border: 1px solid var(--rule); border-radius: var(--r); overflow: hidden; }
+.pblock-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; padding: 10px 12px 10px 14px; border-left: 5px solid var(--pc); background: var(--surface); }
+.pblock-head .pcalc { grid-column: 1 / -1; font-size: .84rem; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.pblock-head .pcalc b { color: var(--ink); }
+.pscale { display: flex; gap: 4px; align-items: center; }
+.clist { list-style: none; margin: 0; padding: 0; }
+.crow { display: grid; grid-template-columns: auto minmax(0, 1fr) 7.4rem 8.6rem minmax(0, 15rem); grid-template-areas: "nb main votes q st"; gap: 4px 14px; align-items: center; padding: 7px 12px 7px 14px; border-top: 1px solid var(--rule); }
+.crow > .cmain { grid-area: main; } .crow > .cvotes { grid-area: votes; } .crow > .cq { grid-area: q; } .crow > .cst { grid-area: st; }
+.crow.is-hl { animation: hl 1.6s ease-out; }
+@keyframes hl { from { background: var(--accent-soft); } to { background: transparent; } }
+.crow > .numbox, .mrow > .numbox { grid-area: nb; }
+.numbox { font: 600 .92rem/1 var(--f-mono); color: var(--pen); min-width: 3.3em; text-align: center; padding: .48em .35em; border: 1.5px solid var(--rule-2); border-radius: 3px; background: var(--surface); }
+.numbox.is-el { border-color: var(--pc); box-shadow: inset 0 -3px 0 var(--pc); }
+.cmain { min-width: 0; display: grid; gap: 1px; }
+.cname { background: none; border: 0; padding: 0; text-align: left; font-weight: 600; font-size: .95rem; color: var(--ink); line-height: 1.3; }
+.cname:hover { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.cmeta { font-size: .76rem; color: var(--ink-3); }
+.cvotes { display: grid; gap: 1px; }
+.cvotes .lbl { font-size: .66rem; color: var(--ink-3); letter-spacing: .05em; text-transform: uppercase; font-weight: 600; }
+.cvotes input { width: 100%; border: 1px solid var(--rule-2); background: var(--surface); border-radius: 5px; padding: .32em .5em; text-align: right; font: 500 .95rem/1.2 var(--f-mono); font-variant-numeric: tabular-nums; }
+.cvotes input:focus { border-color: var(--accent); }
+.cq { display: grid; gap: 3px; justify-items: start; }
+.qv { font: 500 .84rem/1 var(--f-mono); font-variant-numeric: tabular-nums; }
+.meter { display: inline-flex; gap: 3px; }
+.pill { font: 600 .64rem/1 var(--f-mono); padding: .22em .38em; border-radius: 3px; border: 1px solid var(--rule); color: var(--ink-3); }
+.pill.on { background: var(--ink-2); border-color: var(--ink-2); color: var(--surface); }
+.pill.on.q { background: var(--ink); border-color: var(--ink); }
+.cst { display: flex; flex-wrap: wrap; gap: 3px 6px; align-items: center; min-width: 0; }
+.chip { display: inline-flex; align-items: center; gap: .38em; font-size: .78rem; font-weight: 600; padding: .2em .6em; border-radius: 999px; background: var(--sunk); color: var(--ink-2); white-space: nowrap; }
+.chip-el { background: var(--accent-soft); color: var(--ink); }
+.chip-sub { background: transparent; box-shadow: inset 0 0 0 1px var(--rule-2); color: var(--ink-2); }
+.chip-out { background: var(--bad-soft); color: var(--bad); }
+.chip-none { background: transparent; color: var(--ink-3); padding-left: 0; }
+.sub { font-size: .76rem; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+
+/* liikmed */
+.simbar { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; padding: 12px 14px; border-radius: var(--r); background: var(--sunk); margin-bottom: 16px; }
+.simlog { margin: 8px 0 0; padding-left: 1.3em; font-size: .86rem; color: var(--ink-2); display: grid; gap: 2px; }
+.mgroups { display: grid; gap: 16px; }
+.mgroup { background: var(--surface); border: 1px solid var(--rule); border-radius: var(--r); overflow: hidden; }
+.mgroup > header { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: baseline; justify-content: space-between; padding: 11px 14px; border-left: 5px solid var(--pc); }
+.mlist { list-style: none; margin: 0; padding: 0; }
+.mrow { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "nb main act"; gap: 6px 14px; padding: 9px 12px 10px 14px; border-top: 1px solid var(--rule); align-items: start; }
+.mrow .numbox { margin-top: 2px; }
+.mmain { grid-area: main; min-width: 0; display: grid; gap: 4px; }
+.mline { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; }
+.mact { grid-area: act; display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
+.chain { display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; font-size: .82rem; color: var(--ink-2); }
+.chain .lab { color: var(--ink-3); font-size: .74rem; letter-spacing: .04em; text-transform: uppercase; font-weight: 600; margin-right: 2px; }
+.sb { display: inline-flex; align-items: baseline; gap: 4px; border: 1px solid var(--rule); border-radius: 5px; padding: .08em .45em; background: var(--surface); }
+.sb b { font-weight: 600; color: var(--ink); }
+.sb .k { font: 600 .68rem/1 var(--f-mono); color: var(--ink-3); }
+.sb.next { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.sb.used b { text-decoration: line-through; color: var(--ink-3); }
+.holder { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; font-size: .86rem; padding: 6px 9px; border-radius: 6px; background: var(--accent-soft); }
+.holder.vacant { background: var(--bad-soft); color: var(--bad); }
+.mrow.is-left > .mmain > .mline .cname { text-decoration: line-through; color: var(--ink-3); }
+
+/* jaotus */
+.steps { display: grid; gap: 26px; }
+.step { display: grid; gap: 10px; }
+.step-h { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; }
+.step-h .law { font-size: .8rem; color: var(--ink-3); }
+.step p.note { color: var(--ink-2); font-size: .88rem; max-width: 80ch; }
+.tbl input.inp { width: 6.5em; text-align: right; padding: .25em .45em; font-family: var(--f-mono); font-size: .86rem; }
+.mx td { text-align: center; }
+.mx td:first-child, .mx th:first-child { text-align: left; }
+.mx .cell { display: grid; justify-items: center; gap: 1px; line-height: 1.15; }
+.mx .cell b { font: 700 1rem/1 var(--f-display); }
+.mx .cell small { font: 500 .7rem/1 var(--f-mono); color: var(--ink-3); }
+.mx .cell .lost { color: var(--warn); font-size: .7rem; font-weight: 600; }
+.mx .cell.zero b { color: var(--ink-3); font-weight: 500; }
+.figs { display: flex; flex-wrap: wrap; gap: 4px; }
+.fig { font: 500 .74rem/1 var(--f-mono); padding: .35em .45em; border-radius: 4px; border: 1px solid var(--rule); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fig.district { color: var(--ink-3); text-decoration: line-through; background: var(--sunk); border-color: transparent; }
+.fig.comp { background: var(--pc); border-color: var(--pc); font-weight: 600; }
+.fig.next { border-style: dashed; color: var(--ink-2); }
+.cut { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: .86rem; color: var(--ink-2); }
+
+/* asendusliikmed */
+.pchips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 18px; }
+.pchip { display: inline-flex; gap: 7px; align-items: center; border: 1px solid var(--rule); background: var(--surface); border-radius: 999px; padding: .3em .8em .3em .6em; font-size: .86rem; font-weight: 600; }
+.pchip[aria-pressed="true"] { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+.dsubs { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+.dsub { background: var(--surface); border: 1px solid var(--rule); border-radius: var(--r); padding: 10px 12px; display: grid; gap: 6px; align-content: start; min-width: 0; }
+.dsub ol { margin: 0; padding-left: 1.4em; display: grid; gap: 2px; font-size: .88rem; }
+.dsub .el { font-size: .78rem; color: var(--ink-3); }
+.grp-b td { color: var(--ink-2); }
+.split td { border-top: 2px solid var(--rule-2); }
+
+/* kontroll */
+.checks { display: grid; gap: 8px; max-width: 760px; }
+.check { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 9px 12px; }
+.check .mark { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: .8rem; background: var(--ok-soft); color: var(--ok); }
+.check.bad .mark { background: var(--bad-soft); color: var(--bad); }
+.check .cnt { font: 600 .86rem/1 var(--f-mono); color: var(--ink-2); }
+.diffcols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.diffcols ul { margin: 6px 0 0; padding-left: 1.2em; font-size: .9rem; display: grid; gap: 2px; }
+
+/* reeglid */
+.rules { max-width: 78ch; display: grid; gap: 18px; }
+.rules ol { margin: 0; padding-left: 1.3em; display: grid; gap: 14px; }
+.rules li p { color: var(--ink-2); margin-top: 3px; }
+.rules li b { color: var(--ink); }
+.foot { border-top: 1px solid var(--rule); padding-block: 18px 30px; font-size: .82rem; color: var(--ink-3); }
+
+/* dialoogid */
+dialog { border: 1px solid var(--rule-2); border-radius: 12px; padding: 0; background: var(--surface); color: var(--ink); width: min(680px, calc(100vw - 24px)); max-height: calc(100dvh - 32px); box-shadow: 0 24px 64px rgba(0, 0, 0, .28); }
+dialog::backdrop { background: rgba(8, 14, 22, .45); }
+.dlg { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; max-height: calc(100dvh - 34px); }
+.dlg-h { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 14px 16px; border-bottom: 1px solid var(--rule); border-left: 5px solid var(--pc, var(--rule-2)); }
+.dlg-b { padding: 14px 16px 18px; overflow: auto; display: grid; gap: 14px; align-content: start; }
+.dlg-f { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; padding: 10px 16px; border-top: 1px solid var(--rule); }
+.facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px 16px; margin: 0; }
+.facts dt { font-size: .7rem; color: var(--ink-3); letter-spacing: .05em; text-transform: uppercase; font-weight: 600; }
+.facts dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+.chainlist { display: grid; gap: 10px; }
+.chainlist h4 { margin: 0 0 4px; font: 600 .8rem/1.2 var(--f-body); color: var(--ink-2); }
+.chainlist ol { margin: 0; padding-left: 1.6em; display: grid; gap: 2px; font-size: .9rem; }
+.chainlist li.used { color: var(--ink-3); text-decoration: line-through; }
+.chainlist li.next { font-weight: 600; }
+textarea.inp { min-height: 260px; font: .8rem/1.4 var(--f-mono); resize: vertical; }
+.err { color: var(--bad); font-size: .86rem; }
+.okmsg { color: var(--ok); font-size: .86rem; }
+
+@media (max-width: 1180px) {
+  .summary { grid-template-columns: minmax(0, 1fr); }
+  .hemi-card { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); grid-template-areas: "hemi kpis" "legend warns"; column-gap: 28px; }
+  .kpis { border-top: 0; padding-top: 0; align-self: center; }
+}
+@media (max-width: 980px) {
+  .dpicker { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .crow { grid-template-columns: auto minmax(0, 1fr) 7rem 7.6rem; grid-template-areas: "nb main votes q" "nb st st st"; }
+}
+@media (max-width: 620px) {
+  body { font-size: 14.5px; }
+  .dpicker { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .crow { grid-template-columns: auto minmax(0, 1fr) 6.4rem; grid-template-areas: "nb main votes" "nb q q" "nb st st"; padding-left: 10px; padding-right: 10px; }
+  .cq { display: flex; gap: 8px; align-items: center; }
+  .hemi-card { grid-template-columns: minmax(0, 1fr); grid-template-areas: "hemi" "legend" "warns" "kpis"; }
+  .kpis { border-top: 1px solid var(--rule); padding-top: 12px; }
+  .mrow { grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "nb main" "nb act"; }
+  .mact { flex-direction: row; align-items: center; justify-content: flex-start; }
+  .diffcols { grid-template-columns: minmax(0, 1fr); }
+  .kpis { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .tools .grow { flex-basis: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+</style>
+
+</head>
+<body>
+<header class="top">
+  <div class="wrap top-row">
+    <div class="brand">
+      <p class="eyebrow">Riigikogu valimise seadus § 62, § 75, § 76 · Riigikogu liikme staatuse seadus § 12</p>
+      <h1>Riigikogu valimiste mudel</h1>
+      <p class="lede">Muuda kandidaatide hääli ringkonniti ja vaata, kes saab Riigikokku, millise mandaadiga ning kes on iga valitud liikme asendusliikmed õiges järjekorras.</p>
+    </div>
+    <div class="toolbar">
+      <span id="dataBadge" class="badge">2023 ametlikud hääled</span>
+      <button type="button" class="btn" id="btnReset">Taasta 2023 andmed</button>
+      <button type="button" class="btn" id="btnZero">Nulli kõik hääled</button>
+      <button type="button" class="btn" id="btnData">Andmed (JSON)</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="summary" aria-label="Valimistulemus">
+    <div class="card hemi-card">
+      <svg class="hemi" id="hemi" viewBox="-1.1 -1.1 2.2 1.17" role="img" aria-label="Riigikogu kohtade jaotus"></svg>
+      <div class="legend" id="legend"></div>
+      <div class="warns" id="warns"></div>
+      <div class="kpis" id="kpis"></div>
+    </div>
+    <div class="card party-card">
+      <div class="scroll-x"><table class="tbl ptable" id="ptable"></table></div>
+    </div>
+  </section>
+
+  <nav class="tabs" role="tablist" aria-label="Vaated">
+    <button type="button" class="tab" role="tab" id="tab-haaled" aria-controls="panel-haaled" data-tab="haaled">Hääled ringkonniti</button>
+    <button type="button" class="tab" role="tab" id="tab-liikmed" aria-controls="panel-liikmed" data-tab="liikmed">Valitud ja asendajad</button>
+    <button type="button" class="tab" role="tab" id="tab-jaotus" aria-controls="panel-jaotus" data-tab="jaotus">Mandaatide jaotus</button>
+    <button type="button" class="tab" role="tab" id="tab-asendusliikmed" aria-controls="panel-asendusliikmed" data-tab="asendusliikmed">Asendusliikmete nimekirjad</button>
+    <button type="button" class="tab" role="tab" id="tab-kontroll" aria-controls="panel-kontroll" data-tab="kontroll">Kontroll 2023</button>
+    <button type="button" class="tab" role="tab" id="tab-reeglid" aria-controls="panel-reeglid" data-tab="reeglid">Reeglid</button>
+  </nav>
+
+  <section class="panel" role="tabpanel" id="panel-haaled" aria-labelledby="tab-haaled"></section>
+  <section class="panel" role="tabpanel" id="panel-liikmed" aria-labelledby="tab-liikmed" hidden></section>
+  <section class="panel" role="tabpanel" id="panel-jaotus" aria-labelledby="tab-jaotus" hidden></section>
+  <section class="panel" role="tabpanel" id="panel-asendusliikmed" aria-labelledby="tab-asendusliikmed" hidden></section>
+  <section class="panel" role="tabpanel" id="panel-kontroll" aria-labelledby="tab-kontroll" hidden></section>
+  <section class="panel" role="tabpanel" id="panel-reeglid" aria-labelledby="tab-reeglid" hidden>
+    <div class="rules">
+      <p class="panel-intro">Mudel arvutab tulemuse Riigikogu valimise seaduse (<a href="https://www.riigiteataja.ee/akt/RKVS" target="_blank" rel="noopener">RKVS</a>, kehtiv sõnastus 01.10.2024; tulemuste kindlakstegemise sätted on samad, mis 2023. aasta valimistel) ja Riigikogu liikme staatuse seaduse (<a href="https://www.riigiteataja.ee/akt/RKLS" target="_blank" rel="noopener">RKLS</a>) järgi. Mudel ei ole ametlik; ametlikud tulemused avaldab <a href="https://www.valimised.ee" target="_blank" rel="noopener">valimised.ee</a>.</p>
+      <ol>
+        <li><b>Mandaadid ringkondade vahel (RKVS § 7).</b>
+          <p>101 mandaati jaotatakse 12 ringkonna vahel valijate arvu järgi. Valijate koguarv jagatakse 101-ga, iga ringkonna valijate arv jagatakse saadud arvuga, ringkond saab tulemuse täisosa ja ülejäänud mandaadid antakse suurimate jääkidega ringkondadele. Valijate arv võetakse rahvastikuregistrist valimiste väljakuulutamise kuu 1. kuupäeva seisuga.</p></li>
+        <li><b>Lihtkvoot (§ 62 lg 1).</b>
+          <p>Ringkonna kehtivate häälte arv jagatakse ringkonna mandaatide arvuga.</p></li>
+        <li><b>Isikumandaat (§ 62 lg 2).</b>
+          <p>Valituks osutub kandidaat, kelle häälte arv on lihtkvoodist suurem või sellega võrdne. See kehtib ka üksikkandidaadile ja 5% künnisest alla jäänud erakonna kandidaadile.</p></li>
+        <li><b>5% künnis (§ 62 lg 3–4).</b>
+          <p>Ringkonna- ja kompensatsioonimandaate saavad ainult erakonnad, kelle kandidaadid kogusid üle Eesti kokku vähemalt 5% kehtivatest häältest.</p></li>
+        <li><b>Ringkonnamandaat (§ 62 lg 3).</b>
+          <p>Erakonna kandidaatide hääled ringkonnas liidetakse. Erakond saab nii mitu mandaati, mitu korda summa ületab lihtkvoodi, ja ühe juurde, kui jääk on vähemalt 75% lihtkvoodist. Mandaadi saab ka erakond, kelle summa on 75–100% lihtkvoodist. Isikumandaadid arvatakse erakonna mandaatide hulka. Mandaadid saavad häälte arvu järgi eespool olevad kandidaadid, kellele anti vähemalt 10% lihtkvoodist; võrdse häälte arvu korral see, kes on erakonna üleriigilises nimekirjas eespool. Mandaadid, mida ei saa täita, lähevad kompensatsiooniks.</p></li>
+        <li><b>Kompensatsioonimandaadid (§ 62 lg 4–8).</b>
+          <p>Ringkondades jaotamata mandaadid jaotatakse modifitseeritud d’Hondti meetodil jagajatega 1; 2<sup>0,9</sup>; 3<sup>0,9</sup> jne. Iga erakonna puhul jäetakse vahele nii mitu jada esimest liiget, kui mitu mandaati erakond sai ringkondades. Võrdsete võrdlusarvude korral saab mandaadi erakond, kelle kandidaadid paiknevad ringkonna kandidaatide koondnimekirjas tagapool. Erakonna sees saavad mandaadi üleriigilises nimekirjas eespool olevad valimata kandidaadid, kellele anti vähemalt 5% oma ringkonna lihtkvoodist. Kui neid ei jätku, saab mandaadi suurima lihtkvoodi-protsendiga kandidaat (võrdsuse korral nimekirjas eespool olev). Erakond ei saa rohkem mandaate, kui tal on kandidaate.</p></li>
+        <li><b>Välja langenud kandidaat (§ 62 lg 9).</b>
+          <p>Kui kandidaadi registreerimine tühistatakse või ta sureb pärast eelhääletamise algust, ei saa teda valida. Erakonna kandidaadi hääled jäävad erakonnale (tühistatud registreerimise korral ainult välisriigis antud hääled), üksikkandidaadi hääli tulemuse kindlakstegemisel ei arvestata. Mudelis saab kandidaadi välja langenuks märkida kandidaadi kaardil.</p></li>
+        <li><b>Asendusliikmed (§ 75).</b>
+          <p>Asendusliikmed registreeritakse ainult 5% künnise ületanud erakondadele. Ringkonnas valitud liikmete asendusliikmed on sama erakonna samas ringkonnas valimata jäänud kandidaadid, kellele anti vähemalt 10% lihtkvoodist, häälte arvu järjekorras (võrdsuse korral ringkonnanimekirjas eespool olev). Ametlik praktika (2023) registreerib need ainult ringkondades, kus erakonnal on ringkonnas valitud liikmeid. Kompensatsioonimandaadiga valitud liikmete asendusliikmed on erakonna kõik valimata kandidaadid: esmalt need, kellele anti vähemalt 5% oma ringkonna lihtkvoodist, erakonna üleriigilise nimekirja järjekorras, seejärel ülejäänud lihtkvoodi-protsendi järgi (võrdsuse korral üleriigilises nimekirjas eespool olev).</p></li>
+        <li><b>Asendamise järjekord (RKLS § 11–12).</b>
+          <p>Ringkonnas valitud liikme asemele asub sama erakonna sama ringkonna esimene asendusliige. Kui neid enam ei ole, asub tema asemele erakonna üleriigilise nimekirja esimene asendusliige. Kompensatsioonimandaadiga valitud liikme asemele asub üleriigilise nimekirja esimene asendusliige. Üksikkandidaadi asemele ning siis, kui nimekirjas asendusliikmeid enam pole, asub lisamandaadi alusel määratud asendusliige: lisamandaat läheb erakonnale, kelle võrdlusarv on kompensatsioonimandaatide järel järgmine suurim (§ 76; võrdsuse korral rohkem hääli saanud erakond). Kui liikme volitused taastuvad, lõpevad viimasena samast nimekirjast Riigikokku asunud asendusliikme volitused.</p></li>
+      </ol>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="wrap">Andmed: Riigi valimisteenistus, <a href="https://rk2023.valimised.ee/et/election-result/index.html" target="_blank" rel="noopener">rk2023.valimised.ee</a> (seisuga 20.04.2023). Seadused: <a href="https://www.riigiteataja.ee/akt/RKVS" target="_blank" rel="noopener">Riigikogu valimise seadus</a>, <a href="https://www.riigiteataja.ee/akt/RKLS" target="_blank" rel="noopener">Riigikogu liikme staatuse seadus</a>. Mitteametlik mudel. Lähtekood: <a href="https://github.com/hallkass/riigikogu-valimised" target="_blank" rel="noopener">github.com/hallkass/riigikogu-valimised</a>.</div>
+</footer>
+
+<dialog id="candDlg" aria-labelledby="candDlgTitle"></dialog>
+
+<dialog id="dataDlg" aria-labelledby="dataDlgTitle">
+  <div class="dlg">
+    <div class="dlg-h">
+      <span></span>
+      <div><h2 id="dataDlgTitle">Andmed (JSON)</h2><p class="small muted">Kopeeri praegune mudel või kleebi sama vorminguga andmed (nt teiste valimiste kandidaadid) ja rakenda.</p></div>
+      <button type="button" class="btn btn-ghost" data-close>Sulge</button>
+    </div>
+    <div class="dlg-b">
+      <label class="vh" for="dataText">Mudeli andmed JSON-vormingus</label>
+      <textarea class="inp" id="dataText" spellcheck="false"></textarea>
+      <div class="small muted">Väljad: <span class="mono">districts[]</span> {nr, name, mandates, voters}, <span class="mono">parties[]</span> {id, name, short, color, lot — koht ringkonna koondnimekirjas}, <span class="mono">candidates[]</span> {nr, name, district, party (0 = üksikkandidaat), natPos, distPos, votes, out}.</div>
+      <div><label class="small" for="dataFile">Või loe failist: </label><input type="file" id="dataFile" accept=".json,application/json"></div>
+      <div id="dataMsg" role="status"></div>
+    </div>
+    <div class="dlg-f">
+      <button type="button" class="btn" id="dataCopy">Kopeeri</button>
+      <button type="button" class="btn btn-primary" id="dataApply">Rakenda andmed</button>
+    </div>
+  </div>
+</dialog>
+
+<script type="application/json" id="rk-data">{"meta":{"source":"rk2023.valimised.ee (Riigi valimisteenistus), andmed seisuga 20.04.2023 15:33","year":2023,"generated":"20.04.2023 15:33"},"districts":[{"nr":1,"name":"Tallinna Haabersti, Põhja-Tallinna ja Kristiine linnaosa","mandates":10,"eligible":95660},{"nr":2,"name":"Tallinna Kesklinna, Lasnamäe ja Pirita linnaosa","mandates":13,"eligible":121703},{"nr":3,"name":"Tallinna Mustamäe ja Nõmme linnaosa","mandates":8,"eligible":74270},{"nr":4,"name":"Harju- (v.a Tallinn) ja Raplamaa","mandates":16,"eligible":151230},{"nr":5,"name":"Hiiu-, Lääne- ja Saaremaa","mandates":6,"eligible":54833},{"nr":6,"name":"Lääne-Virumaa","mandates":5,"eligible":46777},{"nr":7,"name":"Ida-Virumaa","mandates":6,"eligible":63897},{"nr":8,"name":"Järva- ja Viljandimaa","mandates":7,"eligible":64186},{"nr":9,"name":"Jõgeva- ja Tartumaa (v.a Tartu linn)","mandates":7,"eligible":72900},{"nr":10,"name":"Tartu linn","mandates":8,"eligible":73456},{"nr":11,"name":"Võru-, Valga- ja Põlvamaa","mandates":8,"eligible":76214},{"nr":12,"name":"Pärnumaa","mandates":7,"eligible":71003}],"parties":[{"id":12,"name":"Erakond Parempoolsed","short":"Parempoolsed","color":"#fa6100","lot":1},{"id":10,"name":"Erakond Eestimaa Rohelised","short":"Rohelised","color":"#8db751","lot":2},{"id":15,"name":"ISAMAA Erakond","short":"Isamaa","color":"#009de0","lot":3},{"id":13,"name":"Sotsiaaldemokraatlik Erakond","short":"SDE","color":"#e10600","lot":4},{"id":11,"name":"Eesti Konservatiivne Rahvaerakond","short":"EKRE","color":"#996600","lot":5},{"id":17,"name":"Erakond Eesti 200","short":"E200","color":"#31758a","lot":6},{"id":9,"name":"Eesti Reformierakond","short":"Reform","color":"#ffdc00","lot":7},{"id":14,"name":"Eesti Keskerakond","short":"Kesk","color":"#007d5a","lot":8},{"id":16,"name":"EESTIMAA ÜHENDATUD VASAKPARTEI","short":"EÜVP","color":"#ff7c80","lot":9}],"candidates":[[101,"Ilmar Raag",1,12,8,1,1131],[102,"Henrik Aavik",1,12,26,2,34],[103,"Alar Voitka",1,12,22,3,34],[104,"Ülle Kell",1,12,48,4,59],[105,"Andres Kuuse",1,12,75,5,14],[106,"Priit Põdra",1,12,80,6,29],[107,"Michael Gregorius Bach",1,12,87,7,26],[108,"Toomas Birk",1,12,92,8,15],[109,"Tiit-Rein Viitso",1,12,85,9,5],[110,"Kaisa-Lisete Kumari",1,12,114,10,13],[111,"Tiit Naber",1,12,65,11,15],[112,"Heiko Kiisk",1,12,118,12,29],[113,"Mart Kuusk",2,12,33,1,411],[114,"Rein Murula",2,12,56,2,60],[115,"Tõnis-Martin Kons",2,12,125,3,202],[116,"Tarmo Linnamägi",2,12,12,4,56],[117,"Mai Loog",2,12,76,5,62],[118,"Mait Raava",2,12,14,6,28],[119,"Krista Vapper",2,12,21,7,53],[120,"Tauno Õunapuu",2,12,13,8,48],[121,"Kätlin Kuldmaa",2,12,30,9,81],[122,"Rainer Lomp",2,12,105,10,19],[123,"Hindrek Männik",2,12,88,11,23],[124,"Sandra Sander",2,12,93,12,44],[125,"Kaspar Põder",2,12,104,13,25],[126,"Jevgeni Garmaš",2,12,113,14,7],[127,"Kati Käpp",2,12,27,15,83],[128,"Siim Valmar Kiisler",3,12,3,1,530],[129,"Indrek Luberg",3,12,4,2,194],[130,"Ülle Mitt",3,12,44,3,100],[131,"Jorma Puusaag",3,12,64,4,53],[132,"Imre Miguel Kaju",3,12,106,5,3],[133,"Margit Leerimaa",3,12,39,6,59],[134,"Raul Ennus",3,12,28,7,40],[135,"Tõnu Pihelgas",3,12,77,8,64],[136,"Oivi Nõmmerga",3,12,115,9,6],[137,"Rudolf Kasper Naruski",3,12,40,10,23],[138,"Lavly Perling",4,12,1,1,2443],[139,"Andres Laisk",4,12,32,2,285],[140,"Andres Kaarmann",4,12,5,3,162],[141,"Aimur Liiva",4,12,57,4,95],[142,"Kadri Tillemann",4,12,37,5,33],[143,"Ando Eelmaa",4,12,20,6,63],[144,"Eero Alamaa",4,12,66,7,55],[145,"Alar Mutli",4,12,78,8,87],[146,"Andrus Kaarelson",4,12,9,9,53],[147,"Virko Raagmets",4,12,89,10,49],[148,"Anne Ensling",4,12,29,11,20],[149,"Iveta Tomera",4,12,94,12,11],[150,"Signe Laar",4,12,34,13,54],[151,"Agu Laius",4,12,41,14,26],[152,"Arvo Veskimets",4,12,103,15,18],[153,"Ville Vallaste",4,12,86,16,32],[154,"Adriana Jordan",4,12,116,17,43],[155,"Ann Räämet",4,12,19,18,15],[156,"Kristjan Vanaselja",5,12,2,1,462],[157,"Inga Kupp-Silberg",5,12,11,2,65],[158,"Toomas Kasemaa",5,12,42,3,66],[159,"Tiiu Nigul",5,12,63,4,16],[160,"Tõnu Liivo",5,12,67,5,54],[161,"Kerli Elbrecht",5,12,79,6,41],[162,"Mihkel Palk",5,12,95,7,17],[163,"Jaan Mihkel Uustalu",5,12,117,8,24],[164,"Tiina Uueni",6,12,49,1,477],[165,"Janek Puusepp",6,12,58,2,115],[166,"Birgit Remiküll",6,12,7,3,76],[167,"Merli Kaunissaar",6,12,68,4,61],[168,"Ülar Lembke",6,12,96,5,40],[169,"Marju Puurand",6,12,102,6,29],[170,"Airi Liiva",6,12,36,7,46],[171,"Ivo Loide",7,12,43,1,90],[172,"Marie Edala",7,12,50,2,17],[173,"Rait Mattias Salvan",7,12,17,3,43],[174,"Roman Astahhov",7,12,62,4,16],[175,"Aivar Helstein",7,12,69,5,40],[176,"Ivan Dmitrijev",7,12,97,6,11],[177,"Aneli Šmigelskite",7,12,107,7,46],[178,"Karit Tuusula Mölder",7,12,119,8,19],[179,"Priit Põllumäe",8,12,51,1,232],[180,"Aili Avi",8,12,45,2,197],[181,"Kati Kuusk",8,12,6,3,111],[182,"Ermo Täks",8,12,59,4,34],[183,"Viljar Pennert",8,12,70,5,48],[184,"Mihkel Kalda",8,12,84,6,110],[185,"Tarvi Tuvi",8,12,98,7,42],[186,"Kaur Joonas Usai",8,12,108,8,16],[187,"Urmas Kirsch",8,12,120,9,16],[188,"Allan Muuk",9,12,18,1,321],[189,"Karel Kuningas",9,12,10,2,229],[190,"Kaire Vahejõe",9,12,23,3,190],[191,"Kadri Sommer",9,12,52,4,125],[192,"Tõnu Aigro",9,12,71,5,158],[193,"Guido Pook",9,12,83,6,36],[194,"Imre Vilt",9,12,99,7,56],[195,"Ago Kaasik",9,12,109,8,48],[196,"Martin Kleinert",9,12,121,9,44],[197,"Elmo Somelar",10,12,24,1,367],[198,"Kadri Kullman",10,12,46,2,209],[199,"Arne Merilai",10,12,15,3,114],[200,"Aadi Tegova",10,12,38,4,70],[201,"Hedi Teidearu",10,12,53,5,41],[202,"Indrek Adler",10,12,72,6,58],[203,"Jaagup Ainsalu",10,12,31,7,15],[204,"Ülo Heinsoo",10,12,82,8,36],[205,"Carmen Marianne Teär",10,12,110,9,22],[206,"Tanel Uibo",10,12,122,10,33],[207,"Põim Kama",11,12,16,1,556],[208,"Esmar Naruski",11,12,35,2,91],[209,"Väino Tõemets",11,12,47,3,39],[210,"Liina Tsimmer",11,12,54,4,55],[211,"Margus Karro",11,12,61,5,78],[212,"Rein Mootse",11,12,73,6,23],[213,"Mart Keerutaja",11,12,90,7,25],[214,"Uku Kudu",11,12,100,8,48],[215,"Sulev Kaldaru",11,12,111,9,8],[216,"Mikk Umbleja",11,12,123,10,92],[217,"Kaarel Kose",12,12,55,1,426],[218,"Marelle Erlenheim",12,12,60,2,74],[219,"Andres Tölp",12,12,74,3,183],[220,"Kristiina Laius",12,12,81,4,54],[221,"Peeter Hermik",12,12,25,5,81],[222,"Katrin Ekštein",12,12,91,6,35],[223,"Aleksander Saak",12,12,101,7,31],[224,"Greta Pukk",12,12,112,8,38],[225,"Paavo Ulmanis",12,12,124,9,29],[226,"Liina Freivald",1,10,3,1,168],[227,"Rasmus Lahtvee",1,10,6,2,71],[228,"Alina Lerner-Vilu",1,10,27,3,108],[229,"Hannes Liitmäe",1,10,13,4,44],[230,"Fideelia-Signe Roots",1,10,18,5,72],[231,"Aul Pedajas",1,10,35,6,14],[232,"Martti Randma",1,10,33,7,58],[233,"Evelyn Sepp",1,10,58,8,130],[234,"Johanna-Maria Tõugu",2,10,1,1,491],[235,"Timur Sagitov",2,10,12,2,163],[236,"Eero Tölpt",2,10,21,3,36],[237,"Peeter Raielo",2,10,51,4,20],[238,"Rene Kuulmann",2,10,22,5,55],[239,"Helina Tilk",3,10,4,1,265],[240,"Katrin Jõgisaar",3,10,9,2,142],[241,"Janek Jõgisaar",3,10,50,3,65],[242,"Egle Olesk",3,10,23,4,112],[243,"Nikolai Degtjarenko",4,10,10,1,183],[244,"Oliver Liidemann",4,10,17,2,104],[245,"Karen Kangro Burns",4,10,57,3,114],[246,"Erkki Markus",4,10,52,4,85],[247,"Susanna Saar",4,10,28,5,125],[248,"Siiri Alberg",4,10,32,6,87],[249,"Harold Oja",4,10,56,7,49],[250,"Kalle Virkus",5,10,19,1,48],[251,"Steve Truumets",5,10,30,2,50],[252,"Loore Härmat",5,10,54,3,54],[253,"Aleksei Lotman",5,10,31,4,159],[254,"Jaanus Nurmoja",6,10,14,1,75],[255,"Tuula Raidna",6,10,26,2,75],[256,"Anna Kalinina",7,10,46,1,49],[257,"Rauno Alliksaar",7,10,47,2,76],[258,"Aleksandr Trunov",7,10,48,3,15],[259,"Piret Räni",8,10,5,1,174],[260,"Oliver Rohesalu",8,10,37,2,76],[261,"Elsa Joanna Jukola",8,10,24,3,58],[262,"Hans Leonhard Kõrgesaar",9,10,15,1,91],[263,"Ave Mets",9,10,29,2,233],[264,"Arvo Kuiv",9,10,20,3,18],[265,"Alo Kaasik",9,10,34,4,31],[266,"Anti Einpaul",9,10,49,5,46],[267,"Mattias Pilv",9,10,36,6,71],[268,"Marko Kaasik",10,10,2,1,272],[269,"Laila Kaasik",10,10,7,2,182],[270,"Kärt Kalvet",10,10,38,3,66],[271,"Marti Soosaar",10,10,16,4,77],[272,"Raul Kübarsepp",10,10,39,5,79],[273,"Eliisa Pass",10,10,41,6,104],[274,"Alar Aab",10,10,40,7,41],[275,"Kaspar Kurve",11,10,53,1,144],[276,"Kaia Solnik",11,10,8,2,97],[277,"Margus Konnula",11,10,44,3,231],[278,"Urmas Heinaste",11,10,42,4,16],[279,"Kaia Konsap",11,10,43,5,21],[280,"Kullar Lubi",11,10,45,6,1],[281,"Hanna-Maria Randma",11,10,55,7,45],[282,"Liina Reimann",12,10,11,1,290],[283,"Sven Arulaid",12,10,25,2,60],[284,"Riina Solman",1,15,4,1,1773],[285,"Kristjan Järvan",1,15,11,2,367],[286,"Helen Hääl",1,15,25,3,183],[287,"Priidu Pärna",1,15,28,4,259],[288,"Karl Sander Kase",1,15,21,5,137],[289,"Tiit Meren",1,15,37,6,199],[290,"Hannes Toomsalu",1,15,49,7,48],[291,"Ingrid Mühling",1,15,61,8,70],[292,"Rain Veetõusme",1,15,73,9,77],[293,"Vootele Hansen",1,15,85,10,172],[294,"Peeter Võsu",1,15,97,11,69],[295,"Avo Üprus",1,15,109,12,117],[296,"Riho Terras",2,15,6,1,1724],[297,"Tarmo Kruusimäe",2,15,14,2,448],[298,"Marko Kaljuveer",2,15,22,3,349],[299,"Pille Lill",2,15,19,4,279],[300,"Jaan Sven Männik",2,15,31,5,52],[301,"Lagle Parek",2,15,123,6,250],[302,"Lea Nilson",2,15,27,7,92],[303,"Madis Päts",2,15,38,8,119],[304,"Kalev Vapper",2,15,34,9,106],[305,"Peep Lassmann",2,15,50,10,86],[306,"Tiit Matsulevitš",2,15,62,11,49],[307,"Feliks Undusk",2,15,74,12,38],[308,"Jüri Trei",2,15,86,13,96],[309,"Tõnis Palts",2,15,98,14,97],[310,"Heldur-Valdek Seeder",2,15,110,15,235],[311,"Raivo Tamm",3,15,15,1,1693],[312,"Lea Danilson-Järg",3,15,10,2,409],[313,"Kalle Muuli",3,15,39,3,319],[314,"Merike Värik",3,15,26,4,185],[315,"Mikk Targo",3,15,51,5,75],[316,"Kadi Alatalu",3,15,63,6,120],[317,"Gerry Konnov",3,15,36,7,58],[318,"Kristian Taska",3,15,75,8,37],[319,"Trivimi Velliste",3,15,87,9,274],[320,"Mart Rannut",3,15,99,10,135],[321,"Urmas Reinsalu",4,15,3,1,4509],[322,"Raivo Aeg",4,15,12,2,418],[323,"Lauri Vahtre",4,15,125,3,510],[324,"Heiki Hepner",4,15,17,4,1024],[325,"Tanel Ots",4,15,30,5,312],[326,"Tarmo Kõuts",4,15,23,6,288],[327,"Artur Tiganik",4,15,24,7,248],[328,"Gerli Lehe",4,15,20,8,440],[329,"Mari-Ann Kelam",4,15,29,9,280],[330,"Jan Trei",4,15,40,10,83],[331,"Erik Sandla",4,15,52,11,93],[332,"Merike Käver",4,15,35,12,110],[333,"Priit Põldmäe",4,15,64,13,75],[334,"Marju Aolaid",4,15,76,14,72],[335,"Valdis Toomast",4,15,88,15,91],[336,"Villu Karu",4,15,100,16,114],[337,"Anne Eenpalu",4,15,111,17,81],[338,"Imre Rammul",4,15,118,18,48],[339,"Mart Maastik",5,15,9,1,855],[340,"Mikk Lõhmus",5,15,41,2,481],[341,"Andrus Ilumets",5,15,53,3,424],[342,"Anti Toplaan",5,15,65,4,435],[343,"Kersti Truverk",5,15,77,5,160],[344,"Kalmer Poopuu",5,15,89,6,113],[345,"Tõnu Munk",5,15,101,7,69],[346,"Kaido Kaasik",5,15,112,8,277],[347,"Üllar Saaremäe",6,15,16,1,2027],[348,"Sigrid Nuutre",6,15,42,2,96],[349,"Marko Pomerants",6,15,54,3,590],[350,"Kert Karus",6,15,66,4,280],[351,"Einar Vallbaum",6,15,78,5,293],[352,"Tõnis Pruler",6,15,90,6,409],[353,"Alari Kirt",6,15,102,7,186],[354,"Hendrik Agur",7,15,43,1,441],[355,"Marja-Liisa Veiser",7,15,13,2,341],[356,"Siim Umerov",7,15,32,3,10],[357,"Aivo Tamm",7,15,55,4,129],[358,"Artur Põld",7,15,67,5,84],[359,"Piret Linnas",7,15,79,6,30],[360,"Peeter Kaldur",7,15,91,7,32],[361,"Timo Juursalu",7,15,103,8,104],[362,"Helir-Valdor Seeder",8,15,1,1,2689],[363,"Ründo Mülts",8,15,44,2,534],[364,"Alar Karu",8,15,56,3,539],[365,"Mihhail Feštšin",8,15,68,4,250],[366,"Irma Väre",8,15,80,5,96],[367,"Sulo Särkinen",8,15,92,6,207],[368,"Ene Maaten",8,15,104,7,169],[369,"Heli Koit",8,15,113,8,49],[370,"Lembit Kruuse",8,15,119,9,140],[371,"Aivar Kokk",9,15,7,1,3136],[372,"Juhani Jaeger",9,15,45,2,594],[373,"Reet Alev",9,15,57,3,503],[374,"Argo Annuk",9,15,69,4,148],[375,"Aare Anderson",9,15,81,5,277],[376,"Irina Orlova",9,15,93,6,92],[377,"Ivar Tedrema",9,15,105,7,157],[378,"Rain Sangernebo",9,15,114,8,261],[379,"Marek Pihlak",9,15,120,9,441],[380,"Tõnis Lukas",10,15,5,1,2218],[381,"Mihhail Lotman",10,15,18,2,572],[382,"Kaspar Kokk",10,15,46,3,263],[383,"Priit Humal",10,15,58,4,252],[384,"Merle Jääger",10,15,70,5,312],[385,"Lembit Kalev",10,15,82,6,110],[386,"Marit Sepma",10,15,94,7,119],[387,"Allan Unt",10,15,106,8,143],[388,"Friedrich Kaasik",10,15,115,9,98],[389,"Jaanus Kriisk",10,15,121,10,132],[390,"Priit Sibul",11,15,2,1,1420],[391,"Tunne-Väldo Kelam",11,15,124,2,235],[392,"Monika Rogenbaum",11,15,47,3,217],[393,"Tarmo Piirmann",11,15,59,4,371],[394,"Meelis Mõttus",11,15,71,5,298],[395,"Ulla Preeden",11,15,83,6,379],[396,"Arne Tilk",11,15,95,7,271],[397,"Kalle Vister",11,15,107,8,128],[398,"Anti Nõlvik",11,15,116,9,160],[399,"Avo Kirsbaum",11,15,122,10,305],[400,"Andres Metsoja",12,15,8,1,1607],[401,"Ela Tomson",12,15,33,2,297],[402,"Lauri Luur",12,15,48,3,812],[403,"Ene Täht",12,15,60,4,191],[404,"Siim Suursild",12,15,72,5,216],[405,"Urmas Aava",12,15,84,6,288],[406,"Johan Kärp",12,15,96,7,252],[407,"Priit Annus",12,15,108,8,284],[408,"Mati Sutt",12,15,117,9,428],[409,"Raimond Kaljulaid",1,13,122,1,1819],[410,"Jaak Juske",1,13,20,2,814],[411,"Natalie Mets",1,13,15,3,1399],[412,"Kadri Kõusaar",1,13,28,4,453],[413,"Joosep Vimm",1,13,21,5,265],[414,"Maris Sild",1,13,37,6,152],[415,"Andrus Vaarik",1,13,69,7,322],[416,"Karin Paulus",1,13,52,8,224],[417,"Aleksandr Popov",1,13,104,9,381],[418,"Kirke Karja",1,13,66,10,155],[419,"Silver Meikar",1,13,109,11,81],[420,"Airi-Alina Allaste",1,13,107,12,100],[421,"Jevgeni Ossinovski",2,13,119,1,2437],[422,"Madle Lippus",2,13,18,2,1365],[423,"Kaarel Oja",2,13,19,3,291],[424,"Maris Hellrand",2,13,35,4,286],[425,"Kirill Klaus",2,13,46,5,91],[426,"Margit Hiiet",2,13,49,6,160],[427,"Artjom Dmitrijev",2,13,80,7,301],[428,"Anette Mäletjärv",2,13,77,8,553],[429,"Anne Vetik",2,13,87,9,136],[430,"Kristo Siig",2,13,102,10,206],[431,"Victoria Erofeeva",2,13,89,11,75],[432,"Siim Tuisk",2,13,100,12,107],[433,"Jelena Petriläinen",2,13,98,13,43],[434,"Aleksander Valdmann",2,13,112,14,55],[435,"Tõnu Oja",2,13,67,15,328],[436,"Riina Sikkut",3,13,2,1,2531],[437,"Sven Mikser",3,13,13,2,665],[438,"Külli Urb",3,13,24,3,202],[439,"Lauri Paeveer",3,13,8,4,181],[440,"Merli Reidolf",3,13,57,5,197],[441,"Karmo Kuri",3,13,62,6,336],[442,"Mari Speek",3,13,105,7,139],[443,"Vahur Koorits",3,13,92,8,20],[444,"Anto Liivat",3,13,82,9,106],[445,"Mart Meri",3,13,27,10,186],[446,"Marina Kaljurand",4,13,123,1,4145],[447,"Tiit Maran",4,13,38,2,709],[448,"Jüri Ross",4,13,36,3,115],[449,"Pille Petersoo",4,13,26,4,287],[450,"Triin Toomesaar",4,13,39,5,698],[451,"Aivar Jaeski",4,13,51,6,64],[452,"Henri Kaselo",4,13,53,7,46],[453,"Anneli Pärlin",4,13,12,8,234],[454,"Eve Kislov",4,13,33,9,45],[455,"Hardi Volmer",4,13,59,10,267],[456,"Raigo Münter",4,13,114,11,33],[457,"Ott Valdma",4,13,72,12,102],[458,"Vladislav Veližanin",4,13,106,13,42],[459,"Egle Pullerits-Heinsar",4,13,68,14,180],[460,"Hestia Rindla",4,13,94,15,71],[461,"Jari Pärgma",4,13,64,16,60],[462,"Margit Väikmeri",4,13,42,17,93],[463,"Tanel Talve",4,13,23,18,292],[464,"Madis Kallas",5,13,118,1,2254],[465,"Reili Rand",5,13,3,2,1361],[466,"Neeme Suur",5,13,40,3,488],[467,"Eiki Nestor",5,13,125,4,276],[468,"Maris Jõgeva",5,13,32,5,100],[469,"Angela Siinor",5,13,91,6,190],[470,"Marge Kanna",5,13,110,7,59],[471,"Heiki Hanso",5,13,78,8,249],[472,"Maido Nõlvak",6,13,10,1,580],[473,"Kairit Pihlak",6,13,9,2,473],[474,"Laila Talunik",6,13,41,3,291],[475,"Eerik Lumiste",6,13,83,4,163],[476,"Raido Parve",6,13,99,5,201],[477,"Madis Joosep Toomel",6,13,108,6,137],[478,"Velvo Väli",6,13,88,7,265],[479,"Piret Hartman",7,13,120,1,993],[480,"Eduard Odinets",7,13,5,2,630],[481,"Ants Kutti",7,13,44,3,125],[482,"Etti Kagarov",7,13,30,4,154],[483,"Oleg Kuznetsov",7,13,95,5,187],[484,"Anne Uttendorf",7,13,55,6,76],[485,"Aili Ilves",7,13,70,7,29],[486,"Mark Gerassimenko",7,13,48,8,56],[487,"Lauri Läänemets",8,13,1,1,1731],[488,"Helmen Kütt",8,13,4,2,2098],[489,"Eimar Veldre",8,13,31,3,82],[490,"Kris Süld",8,13,61,4,608],[491,"Tene Metsma",8,13,79,5,150],[492,"Mart Salumäe",8,13,71,6,86],[493,"Birgit Sitska",8,13,86,7,152],[494,"Kati Nõlvak",8,13,73,8,97],[495,"Tonio Tamra",8,13,54,9,80],[496,"Kajar Lember",9,13,124,1,882],[497,"Priit Lomp",9,13,7,2,1030],[498,"Asso Nettan",9,13,56,3,184],[499,"Marika Saar",9,13,14,4,512],[500,"Liis Rosin",9,13,45,5,319],[501,"Maire Püss",9,13,63,6,229],[502,"Hannes Soosaar",9,13,81,7,240],[503,"Maano Koemets",9,13,65,8,285],[504,"Jarno Laur",9,13,25,9,554],[505,"Krista Aru",10,13,117,1,1177],[506,"Heljo Pikhof",10,13,6,2,1242],[507,"Toomas Jürgenstein",10,13,74,3,471],[508,"Kadri Leetmaa",10,13,16,4,415],[509,"Lemmit Kaplinski",10,13,29,5,303],[510,"Joanna Hoffmann",10,13,47,6,308],[511,"Karl Pütsepp",10,13,50,7,279],[512,"Ants Johanson",10,13,58,8,114],[513,"Mart Hiob",10,13,93,9,108],[514,"Eveliis Padar",10,13,75,10,452],[515,"Ivari Padar",11,13,116,1,1469],[516,"Anti Allas",11,13,115,2,1970],[517,"Sirje Tobreluts",11,13,11,3,337],[518,"Karl Kirt",11,13,17,4,433],[519,"Katre Kikkas",11,13,60,5,219],[520,"Raul Kudre",11,13,76,6,253],[521,"Maris Neeno",11,13,84,7,383],[522,"Toomas Sarapuu",11,13,111,8,129],[523,"Jana Morozov",11,13,96,9,68],[524,"Inara Luigas",11,13,101,10,215],[525,"Peep Peterson",12,13,121,1,755],[526,"Gerda Kulli-Kordemets",12,13,22,2,445],[527,"Silver Tambur",12,13,43,3,138],[528,"Madis Veskimägi",12,13,34,4,665],[529,"Kristjan Kaunissaare",12,13,85,5,64],[530,"Eha Ristimets",12,13,103,6,123],[531,"Rein Kontus",12,13,90,7,141],[532,"Mark Soosaar",12,13,97,8,259],[533,"Jana Ristimets",12,13,113,9,348],[534,"Urmas Reitelmann",1,11,16,1,1520],[535,"Varro Vooglaid",1,11,18,2,2509],[536,"Urmas Espenberg",1,11,31,3,272],[537,"Toivo Tasa",1,11,45,4,134],[538,"Ants Miller",1,11,49,5,82],[539,"Elvis Brauer",1,11,57,6,432],[540,"Tiiu Pohl",1,11,68,7,87],[541,"Kuldar Kesküla",1,11,91,8,82],[542,"Andres Raid",1,11,83,9,545],[543,"Argo Luude",1,11,102,10,94],[544,"Riho Rausma",1,11,113,11,33],[545,"Aare Rüütel",1,11,125,12,166],[546,"Leo Kunnas",2,11,8,1,3390],[547,"Eeva Helme",2,11,15,2,1632],[548,"Mait Talu",2,11,32,3,220],[549,"Ivan Makarov",2,11,46,4,693],[550,"Aat Purje",2,11,60,5,135],[551,"Harri Kingo",2,11,69,6,301],[552,"Eno Leies",2,11,72,7,27],[553,"Raul Öpik",2,11,74,8,36],[554,"Priit Willbach",2,11,77,9,52],[555,"Riho Nüüd",2,11,80,10,79],[556,"Karl Olaf Rääk",2,11,82,11,54],[557,"Piret Kollo",2,11,90,12,49],[558,"Indrek Melder",2,11,100,13,26],[559,"Tiia Arenberg",2,11,112,14,19],[560,"Valdo Tõnissoo",2,11,123,15,59],[561,"Martin Helme",3,11,1,1,4606],[562,"Markus Järvi",3,11,20,2,868],[563,"Kadri Vilba",3,11,33,3,156],[564,"Mart Kallas",3,11,47,4,43],[565,"Raivo Põhjakivi",3,11,54,5,39],[566,"Meeme Luks",3,11,61,6,81],[567,"Eve Pärnaste",3,11,67,7,85],[568,"Mike Calamus",3,11,99,8,31],[569,"Taavi Pärtel",3,11,111,9,20],[570,"Jako Kull",3,11,124,10,31],[571,"Henn Põlluaas",4,11,3,1,5781],[572,"Siim Pohlak",4,11,11,2,4223],[573,"Rene Kokk",4,11,14,3,1016],[574,"Kai Rimmel",4,11,34,4,430],[575,"Rudolf Jeeser",4,11,48,5,456],[576,"Paul Puustusmaa",4,11,63,6,211],[577,"Hasso Uuetoa",4,11,70,7,271],[578,"Raul Siem",4,11,86,8,490],[579,"Kristel Menning",4,11,71,9,490],[580,"Jaanus Härms",4,11,73,10,312],[581,"Merliin Grauberg-Riisenberg",4,11,75,11,148],[582,"Matti Silla",4,11,76,12,154],[583,"Mait Järvik",4,11,79,13,126],[584,"Ranno Pool",4,11,81,14,103],[585,"Leo Kunman",4,11,89,15,427],[586,"Heino Märks",4,11,98,16,180],[587,"Kaupo Männiste",4,11,110,17,411],[588,"Peeter Krall",4,11,122,18,151],[589,"Helle-Moonika Helme",5,11,7,1,3529],[590,"Daniel Mereäär",5,11,22,2,638],[591,"Kristjan Moora",5,11,35,3,1163],[592,"Hardi Rehkalt",5,11,50,4,474],[593,"Palle Kõlar",5,11,41,5,458],[594,"Martin Judanov",5,11,97,6,271],[595,"Roland Mere",5,11,109,7,164],[596,"Jaen Teär",5,11,121,8,254],[597,"Anti Poolamets",6,11,12,1,2831],[598,"Marti Kuusik",6,11,26,2,790],[599,"Aarne Mäe",6,11,36,3,422],[600,"Evelin Poolamets",6,11,5,4,968],[601,"Valdo Helmelaid",6,11,78,5,139],[602,"Andero Põllu",6,11,108,6,397],[603,"Leo Bergström",6,11,120,7,232],[604,"Arvo Aller",7,11,13,1,815],[605,"Riho Breivel",7,11,29,2,759],[606,"Andrus Toss",7,11,38,3,152],[607,"Ants Liimets",7,11,62,4,162],[608,"Aleksandr Andrejev",7,11,59,5,170],[609,"Rainer Asuküla",7,11,88,6,127],[610,"Priit Kama",7,11,107,7,156],[611,"Leana Kruuse",7,11,119,8,135],[612,"Jaak Madison",8,11,4,1,5222],[613,"Kalle Grünthal",8,11,24,2,1498],[614,"Elar Niglas",8,11,39,3,622],[615,"Rein Suurkask",8,11,52,4,364],[616,"Valmar Haava",8,11,64,5,694],[617,"Tarmo Hints",8,11,87,6,108],[618,"Priit Põder",8,11,96,7,154],[619,"Mart Järvik",8,11,106,8,141],[620,"Annika Veidenberg",8,11,118,9,350],[621,"Kert Kingo",9,11,9,1,3095],[622,"Peeter Ernits",9,11,25,2,2933],[623,"Marko Saksing",9,11,42,3,920],[624,"Lauri Koni",9,11,53,4,695],[625,"Aivar Õun",9,11,66,5,318],[626,"Ülle Rosin",9,11,85,6,399],[627,"Andres Ostra",9,11,105,7,228],[628,"Tõnu Kalja",9,11,117,8,397],[629,"Arlo Säälik",9,11,95,9,259],[630,"Jaak Valge",10,11,6,1,2340],[631,"Loone Ots",10,11,21,2,837],[632,"Silver Kuusik",10,11,19,3,829],[633,"Malle Pärn",10,11,43,4,813],[634,"Indrek Kalda",10,11,55,5,468],[635,"Merle Kivest",10,11,65,6,513],[636,"Gert Goršanov",10,11,84,7,364],[637,"Imre Vähi",10,11,94,8,400],[638,"Raul Kivi",10,11,104,9,310],[639,"Aivar Sööt",10,11,116,10,264],[640,"Rain Epler",11,11,10,1,3366],[641,"Ants Frosch",11,11,28,2,2619],[642,"Merry Aart",11,11,17,3,837],[643,"Helen Rebane",11,11,51,4,1343],[644,"Tiit Kala",11,11,30,5,857],[645,"Lilia Müller",11,11,56,6,177],[646,"Kalmar Luisk",11,11,40,7,462],[647,"Mati Kuklane",11,11,93,8,1057],[648,"Uno Kaskpeit",11,11,101,9,701],[649,"Jüri Kaver",11,11,115,10,340],[650,"Mart Helme",12,11,2,1,6130],[651,"Helle Kullerkupp",12,11,23,2,1108],[652,"Alar Laneman",12,11,37,3,1802],[653,"Sven Sildnik",12,11,27,4,1033],[654,"Arvi Karotam",12,11,44,5,218],[655,"Agnes Pulk",12,11,58,6,366],[656,"Heldur Paulson",12,11,92,7,135],[657,"Siimo Lopsik",12,11,103,8,326],[658,"Ken Vaher",12,11,114,9,280],[659,"Johanna-Maria Lehtme",1,17,17,1,5251],[660,"Hendrik Johannes Terras",1,17,3,2,771],[661,"Züleyxa Izmailova",1,17,10,3,1011],[662,"Diana Ingerainen",1,17,18,4,933],[663,"Pirko Konsa",1,17,64,5,206],[664,"Triin Saag",1,17,41,6,526],[665,"Villu Loonde",1,17,75,7,64],[666,"Tarmo Prikk",1,17,87,8,110],[667,"Joel Jesse",1,17,98,9,171],[668,"Peeter-Eerik Ots",1,17,107,10,82],[669,"Aimar Ventsel",1,17,112,11,164],[670,"Indrek Lillemägi",1,17,115,12,349],[671,"Marek Reinaas",2,17,4,1,2090],[672,"Liisa-Ly Pakosta",2,17,9,2,1731],[673,"Ignar Fjuk",2,17,124,3,900],[674,"Nikolai Bentsler",2,17,42,4,421],[675,"Margot Roose",2,17,53,5,1179],[676,"Ron Luvištšuk",2,17,65,6,181],[677,"Karolina Ebba Anna Ullman",2,17,76,7,325],[678,"Sander Maripuu",2,17,88,8,384],[679,"Svetlana Skrebneva",2,17,99,9,113],[680,"Einar Vellend",2,17,108,10,31],[681,"Ksenia Kravtšenko",2,17,113,11,210],[682,"Alo-Allar Altmets",2,17,116,12,81],[683,"Marianna Kaat",2,17,118,13,121],[684,"Diana Andriot",2,17,121,14,204],[685,"Ivo Kappet",2,17,122,15,176],[686,"Margus Tsahkna",3,17,16,1,2922],[687,"Kris Leinatamm",3,17,22,2,1047],[688,"Juku-Kalle Raid",3,17,31,3,1281],[689,"Kadri Jäätma",3,17,43,4,329],[690,"Tanel Sokk",3,17,30,5,319],[691,"Aleksei Jašin",3,17,15,6,483],[692,"Kaspar Kasepõld",3,17,77,7,340],[693,"Kerti Kollom Seidelberg",3,17,89,8,174],[694,"Marek Karm",3,17,100,9,169],[695,"Joonas Laks",3,17,109,10,199],[696,"Lauri Hussar",4,17,1,1,3343],[697,"Toomas Uibo",4,17,19,2,2420],[698,"Külli Tammur",4,17,32,3,1275],[699,"Raul-Stig Rästa",4,17,20,4,1142],[700,"Siiri Sisask",4,17,52,5,984],[701,"Atso Matsalu",4,17,66,6,355],[702,"Evelin Ausmees",4,17,78,7,397],[703,"Urmas Kristal",4,17,90,8,284],[704,"Merlin Linde",4,17,101,9,580],[705,"Tormi Tabor",4,17,110,10,252],[706,"Ines Arna",4,17,114,11,265],[707,"Jaan Tepp",4,17,117,12,129],[708,"Kaire Veinthal",4,17,119,13,217],[709,"Mihkel Tikerpalu",4,17,120,14,236],[710,"Kristo Mägi",4,17,123,15,59],[711,"Timo Nikitin",4,17,54,16,353],[712,"Jüri Lehtmets",4,17,55,17,131],[713,"Joakim Johan Helenius",4,17,125,18,2001],[714,"Grigore-Kalev Stoicescu",5,17,5,1,3664],[715,"Koit Kelder",5,17,23,2,982],[716,"Kai Tarmula",5,17,33,3,522],[717,"Keith Siilats",5,17,44,4,145],[718,"Tõnu Ots",5,17,56,5,76],[719,"Jaanika Roosman",5,17,67,6,137],[720,"Marko Matvei",5,17,79,7,175],[721,"Paap Uspenski",5,17,91,8,415],[722,"Tarmo Tamm",6,17,7,1,876],[723,"Tiia Sihver",6,17,24,2,286],[724,"Rainer Miltop",6,17,34,3,259],[725,"Helene Lumi",6,17,45,4,199],[726,"Aare Raam",6,17,57,5,334],[727,"Reigo Lehtla",6,17,68,6,78],[728,"Krõõt Nõmmela-Mehide",6,17,80,7,442],[729,"Maksim Iljin",7,17,14,1,1111],[730,"Denis Larchenko",7,17,25,2,313],[731,"Sergei Andrejev",7,17,35,3,82],[732,"Marek Kullamägi",7,17,46,4,232],[733,"Olga Pihlak",7,17,58,5,136],[734,"Marko Sandre",7,17,92,6,153],[735,"Ksenia Moskvina",7,17,81,7,71],[736,"Jaanek Pahka",7,17,69,8,356],[737,"Ando Kiviberg",8,17,13,1,1785],[738,"Kadri Paas",8,17,26,2,584],[739,"Kaspar Taimsoo",8,17,36,3,1017],[740,"Janika Gedvil",8,17,47,4,145],[741,"Karl Erik Heinsoo",8,17,59,5,89],[742,"Marju Mäger",8,17,70,6,104],[743,"Olavi Israel",8,17,82,7,160],[744,"Angelika Naris",8,17,93,8,78],[745,"Anzori Barkalaja",8,17,102,9,233],[746,"Irja Lutsar",9,17,12,1,3523],[747,"Märt Meesak",9,17,27,2,762],[748,"Elo Lutsepp",9,17,37,3,308],[749,"Jaak Laineste",9,17,48,4,476],[750,"Kersti Kivirüüt",9,17,60,5,399],[751,"Aare Lill",9,17,71,6,112],[752,"Viktoria Lepp",9,17,83,7,606],[753,"Martin Vilen",9,17,94,8,109],[754,"Kuido Nõmm",9,17,103,9,565],[755,"Kristina Kallas",10,17,2,1,4288],[756,"Tanel Tein",10,17,28,2,1368],[757,"Gea Kangilaski",10,17,38,3,885],[758,"Anneli Kannus",10,17,49,4,753],[759,"Pärtel Piirimäe",10,17,61,5,381],[760,"Mart Kivastik",10,17,72,6,403],[761,"Kristiina Tõnnisson",10,17,84,7,312],[762,"Vahur Kollom",10,17,95,8,233],[763,"Pille Tsopp-Pagan",10,17,104,9,235],[764,"Karl Aaron Adson",10,17,111,10,185],[765,"Igor Taro",11,17,11,1,3275],[766,"Katrin Martinfeld",11,17,29,2,525],[767,"Kaupo Kutsar",11,17,39,3,381],[768,"Krista Sildoja",11,17,50,4,180],[769,"Rein-Erik Jõe",11,17,62,5,160],[770,"Kadri Giannakaina Laube",11,17,73,6,139],[771,"Toivo Saks",11,17,85,7,76],[772,"Aive Adler",11,17,96,8,82],[773,"Blanca Punt",11,17,105,9,145],[774,"Kadri Napritson-Acuna",11,17,21,10,142],[775,"Kadri Tali",12,17,6,1,2092],[776,"Peeter Tali",12,17,8,2,1159],[777,"Sulev Alajõe",12,17,40,3,560],[778,"Kätlin Joala",12,17,51,4,699],[779,"Arli Kanter",12,17,63,5,256],[780,"Reio Randmaa",12,17,74,6,157],[781,"Urmo Kesküla",12,17,86,7,206],[782,"Elmar Bergmann",12,17,97,8,191],[783,"Renata Lukk",12,17,106,9,291],[784,"Kristen Michal",1,9,5,1,9214],[785,"Signe Riisalo",1,9,25,2,4523],[786,"Oksana Tandit",1,9,116,3,349],[787,"Mati Raidma",1,9,45,4,892],[788,"Pärtel-Peeter Pere",1,9,72,5,1474],[789,"Hanah Lahe",1,9,41,6,1050],[790,"Jevgeni Krištafovitš",1,9,57,7,505],[791,"Liis Klaar",1,9,83,8,234],[792,"Lembit Kolk",1,9,101,9,229],[793,"Kristel Kranich",1,9,60,10,129],[794,"Katrin Helendi",1,9,95,11,156],[795,"Kristo Enn Vaga",1,9,24,12,591],[796,"Siim Kallas",2,9,4,1,7393],[797,"Heidy Purga",2,9,35,2,4161],[798,"Andres Sutt",2,9,23,3,3315],[799,"Karmen Joller",2,9,12,4,3566],[800,"Valdo Randpere",2,9,36,5,1169],[801,"Enn Listra",2,9,92,6,497],[802,"Ülle Rajasalu",2,9,66,7,327],[803,"Toomas Kruusimägi",2,9,58,8,322],[804,"Viljar Jaamu",2,9,78,9,141],[805,"Eve Altrov",2,9,113,10,138],[806,"Sander Andla",2,9,51,11,301],[807,"Tiit Vapper",2,9,96,12,150],[808,"Tiit Soorm",2,9,104,13,64],[809,"Margit Elviste",2,9,97,14,120],[810,"Ivi Eenmaa",2,9,46,15,348],[811,"Urmas Paet",3,9,9,1,9154],[812,"Maris Lauri",3,9,17,2,4085],[813,"Igor Schvede",3,9,100,3,601],[814,"Vilja Toomast",3,9,16,4,1205],[815,"Õnne Pillak",3,9,29,5,542],[816,"Eero Merilind",3,9,68,6,868],[817,"Kaido Kaaberma",3,9,65,7,175],[818,"Doris Raudsepp",3,9,93,8,638],[819,"Tõnu Meijel",3,9,106,9,130],[820,"Sten Laansoo",3,9,77,10,332],[821,"Kaja Kallas",4,9,1,1,31816],[822,"Marko Mihkelson",4,9,10,2,2640],[823,"Mart Võrklaev",4,9,15,3,908],[824,"Aivar Sõerd",4,9,19,4,1248],[825,"Kristina Šmigun-Vähi",4,9,30,5,1005],[826,"Timo Suslov",4,9,32,6,1033],[827,"Mario Kadastik",4,9,43,7,962],[828,"Merle Pussak",4,9,108,8,198],[829,"Andrus Umboja",4,9,67,9,466],[830,"Mart Eensalu",4,9,71,10,324],[831,"Maarja Metstak",4,9,86,11,406],[832,"Kalle Toomet",4,9,98,12,199],[833,"Ena Soodla",4,9,114,13,52],[834,"Riho Johanson",4,9,76,14,272],[835,"Doris Lisett Rudnevs",4,9,52,15,325],[836,"Ott Kasuri",4,9,59,16,146],[837,"Anna Õuekallas",4,9,79,17,210],[838,"Aivo Rahu",4,9,123,18,67],[839,"Kalle Laanet",5,9,11,1,4347],[840,"Urve Tiidus",5,9,33,2,2085],[841,"Aivar Viidik",5,9,50,3,1029],[842,"Jaanus Ratas",5,9,91,4,368],[843,"Marliis Rettau",5,9,103,5,702],[844,"Roger Tibar",5,9,105,6,338],[845,"Jaanus Müür",5,9,121,7,253],[846,"Jaanus Tamkivi",5,9,47,8,790],[847,"Hanno Pevkur",6,9,2,1,6567],[848,"Katrin Kuusemäe",6,9,63,2,662],[849,"Indrek Kesküla",6,9,102,3,504],[850,"Liivika Toming",6,9,110,4,278],[851,"Riho Tell",6,9,124,5,264],[852,"Ivar Lilleberg",6,9,120,6,299],[853,"Ainar Sepnik",6,9,109,7,209],[854,"Meelis Kiili",7,9,55,1,1289],[855,"Maris Toomel",7,9,54,2,958],[856,"Aivar Surva",7,9,74,3,654],[857,"Anneki Teelahk",7,9,80,4,508],[858,"Andrea Eiche",7,9,99,5,221],[859,"Tiit Kuusmik",7,9,125,6,184],[860,"Daniil Starodubtsev",7,9,115,7,57],[861,"Vadim Orlov",7,9,122,8,302],[862,"Jürgen Ligi",8,9,3,1,5797],[863,"Pipi-Liis Siemann",8,9,53,2,2498],[864,"Madis Timpson",8,9,42,3,947],[865,"Rait Pihelgas",8,9,64,4,404],[866,"Tarmo Alt",8,9,81,5,262],[867,"Taimo Tugi",8,9,90,6,376],[868,"Piret Moora",8,9,111,7,66],[869,"Mait Allas",8,9,89,8,367],[870,"Sirli Tallo",8,9,85,9,216],[871,"Urmas Kruuse",9,9,14,1,6235],[872,"Luisa Rõivas",9,9,31,2,2939],[873,"Erkki Keldo",9,9,6,3,1445],[874,"Toomas Järveoja",9,9,40,4,1688],[875,"Triin Nõmmistu",9,9,75,5,584],[876,"Viktor Svjatõšev",9,9,118,6,408],[877,"Merili Ranniste",9,9,70,7,281],[878,"Aivar Saarela",9,9,117,8,245],[879,"Kaisa Edenberg",9,9,87,9,404],[880,"Urmas Klaas",10,9,7,1,8065],[881,"Yoko Alender",10,9,20,2,2051],[882,"Ants Laaneots",10,9,18,3,1869],[883,"Margit Sutrop",10,9,44,4,1102],[884,"Mihkel Lees",10,9,39,5,1038],[885,"Signe Kivi",10,9,21,6,1286],[886,"Raimond Tamm",10,9,56,7,886],[887,"Hele Everaus",10,9,48,8,712],[888,"Armen Šahbazjan",10,9,107,9,175],[889,"Reno Laidre",10,9,61,10,443],[890,"Liina Kersna",11,9,8,1,4073],[891,"Eerik-Niiles Kross",11,9,13,2,1428],[892,"Maido Ruusmann",11,9,49,3,1500],[893,"Andrus Seeme",11,9,26,4,723],[894,"Aivar Rosenberg",11,9,69,5,404],[895,"Lauri Drubinš",11,9,94,6,344],[896,"Anti Haugas",11,9,27,7,569],[897,"Margus Lepik",11,9,82,8,182],[898,"Mikk Tarros",11,9,73,9,464],[899,"Mait Klaassen",11,9,28,10,968],[900,"Toomas Kivimägi",12,9,34,1,4099],[901,"Annely Akkermann",12,9,22,2,4381],[902,"Jüri Jaanson",12,9,38,3,1069],[903,"Irina Talviste",12,9,37,4,355],[904,"Toomas Rõhu",12,9,119,5,382],[905,"Marika Valter",12,9,62,6,664],[906,"Riido Villup",12,9,112,7,321],[907,"Laura Kiviselg",12,9,84,8,1107],[908,"Jüri Lebedev",12,9,88,9,577],[909,"Tanel Kiik",1,14,4,1,2070],[910,"Vadim Belobrovtsev",1,14,38,2,3231],[911,"Marek Jürgenson",1,14,34,3,738],[912,"Anastassia Kovalenko-Kõlvart",1,14,10,4,2806],[913,"Andre Hanimägi",1,14,7,5,466],[914,"Betina Beškina",1,14,59,6,556],[915,"Jaanus Riibe",1,14,72,7,492],[916,"Manuela Pihlap",1,14,73,8,471],[917,"Oleg Siljanov",1,14,86,9,1213],[918,"Peeter Järvelaid",1,14,99,10,252],[919,"Kristi Rüütel",1,14,37,11,181],[920,"Märt Sults",1,14,116,12,394],[921,"Mihhail Kõlvart",2,14,125,1,14592],[922,"Tõnis Mölder",2,14,5,2,570],[923,"Vladimir Svet",2,14,39,3,1867],[924,"Aivar Riisalu",2,14,48,4,296],[925,"Maria Jufereva-Skuratovski",2,14,60,5,822],[926,"Monika Haukanõmm",2,14,74,6,360],[927,"Krista Paal",2,14,75,7,106],[928,"Julianna Jurtšenko",2,14,87,8,324],[929,"Aleksandr Tšaplõgin",2,14,88,9,1809],[930,"Merle Klandorf",2,14,100,10,103],[931,"Deniss Presnetsov",2,14,102,11,168],[932,"Vladimir Afanasjev",2,14,110,12,412],[933,"Izabella Riitsaar",2,14,111,13,101],[934,"Andres Jaadla",2,14,118,14,30],[935,"Irina Embrich",2,14,117,15,133],[936,"Lauri Laats",3,14,17,1,5984],[937,"Tiit Terik",3,14,23,2,676],[938,"Arkadi Popov",3,14,40,3,1490],[939,"Helve Särgava",3,14,49,4,180],[940,"Eduard Toman",3,14,61,5,202],[941,"Kerstin-Oudekki Loone",3,14,76,6,402],[942,"Vahur Kõlvart",3,14,89,7,130],[943,"Vladimir Rusnak",3,14,103,8,144],[944,"Maria Doroš",3,14,112,9,170],[945,"Igor Kravtšenko",3,14,119,10,276],[946,"Jüri Ratas",4,14,1,1,7672],[947,"Eva-Maria Liimets",4,14,14,2,138],[948,"Sven Soiver",4,14,20,3,262],[949,"Vladimir Arhipov",4,14,41,4,1103],[950,"Annika Vaikla",4,14,51,5,106],[951,"Jaanus Kalev",4,14,62,6,112],[952,"Katrin Anto",4,14,63,7,106],[953,"Oleg Tšubarov",4,14,77,8,235],[954,"Ene Lill",4,14,91,9,40],[955,"Ilja Ban",4,14,92,10,242],[956,"Robert Antropov",4,14,90,11,90],[957,"Oksana Jõe",4,14,104,12,150],[958,"Eingard Tops",4,14,105,13,14],[959,"Suliko Liiv",4,14,78,14,19],[960,"Natalia Malleus",4,14,113,15,168],[961,"Andres Kollist",4,14,120,16,12],[962,"Andres Kalvik",4,14,114,17,31],[963,"Raivo Uukkivi",4,14,121,18,224],[964,"Jaanus Karilaid",5,14,3,1,2162],[965,"Mihkel Undrest",5,14,27,2,828],[966,"Antti Leigri",5,14,28,3,496],[967,"Neeme Väli",5,14,13,4,159],[968,"Ene Vahter",5,14,52,5,123],[969,"Katrin Pauts",5,14,64,6,82],[970,"Ebekai Härm",5,14,79,7,53],[971,"Janek Mäggi",5,14,101,8,127],[972,"Siret Kotka",6,14,24,1,1430],[973,"Triin Varek",6,14,16,2,1198],[974,"Maksim Butšenkov",6,14,43,3,255],[975,"Andres Sõber",6,14,53,4,304],[976,"Andri Võsokovski",6,14,65,5,57],[977,"Hans Kruusamägi",6,14,80,6,235],[978,"Toomas Väinaste",6,14,26,7,309],[979,"Kaido Höövelson",7,14,25,1,767],[980,"Yana Toom",7,14,2,2,3457],[981,"Dmitri Dmitrijev",7,14,44,3,813],[982,"Aleksei Jevgrafov",7,14,42,4,1405],[983,"Olga Kurdovskaja",7,14,66,5,302],[984,"Aleksei Naumkin",7,14,81,6,330],[985,"Vladimir Võssotski",7,14,93,7,342],[986,"Valeri Korb",7,14,106,8,205],[987,"Jaak Aab",8,14,6,1,1562],[988,"Kersti Sarapuu",8,14,8,2,685],[989,"Peeter Rahnel",8,14,19,3,503],[990,"Priit Seire",8,14,45,4,255],[991,"Priit Pramann",8,14,54,5,100],[992,"Toomas Tammik",8,14,67,6,211],[993,"Katrin Linkov",8,14,82,7,124],[994,"Raivo Matsina",8,14,94,8,65],[995,"Priit Toobal",8,14,31,9,516],[996,"Taavi Aas",9,14,12,1,1666],[997,"Igor Gräzin",9,14,46,2,977],[998,"Angela Saksing",9,14,55,3,412],[999,"Peeter Laasik",9,14,68,4,300],[1000,"Peep Põdder",9,14,95,5,368],[1001,"Kalev Parik",9,14,83,6,48],[1002,"Marianne Kivimurd-Tarelkina",9,14,107,7,115],[1003,"Max Kaur",9,14,122,8,114],[1004,"Aivar Aleksejev",9,14,124,9,298],[1005,"Jaan Toots",10,14,22,1,533],[1006,"Aadu Must",10,14,21,2,618],[1007,"Anneli Ott",10,14,35,3,402],[1008,"Andro Roos",10,14,56,4,528],[1009,"Nikolai Põdramägi",10,14,69,5,404],[1010,"Ismail Mirzojev",10,14,50,6,231],[1011,"Kirill Avdejev",10,14,96,7,186],[1012,"Vladimir Šokman",10,14,108,8,130],[1013,"Irina Panova",10,14,115,9,191],[1014,"Aleksandr Širokov",10,14,123,10,377],[1015,"Erki Savisaar",11,14,32,1,1517],[1016,"Ester Karuse",11,14,15,2,1677],[1017,"Tarmo Tamm",11,14,11,3,1258],[1018,"Anti Saarepuu",11,14,47,4,355],[1019,"Ester Tuiksoo",11,14,29,5,286],[1020,"Andre Laine",11,14,58,6,164],[1021,"Julia Belova",11,14,70,7,166],[1022,"Taavi Tuvike",11,14,84,8,186],[1023,"Jüri Saar",11,14,97,9,124],[1024,"Ülle Juht",11,14,36,10,216],[1025,"Andrei Korobeinik",12,14,57,1,1973],[1026,"Marko Šorin",12,14,18,2,803],[1027,"Enn Eesmaa",12,14,9,3,774],[1028,"Kalev Kaljuste",12,14,30,4,234],[1029,"Varje Tipp",12,14,33,5,179],[1030,"Jüri Kirss",12,14,85,6,307],[1031,"Hardi Pikkmets",12,14,71,7,279],[1032,"Erli Aasamets",12,14,98,8,307],[1033,"Ande Arula",12,14,109,9,150],[1034,"Julia Sommer",1,16,6,1,1481],[1035,"Sandra Sirge",1,16,19,2,110],[1036,"Taivo Rist",1,16,10,3,180],[1037,"Oksana Garmatjuk",1,16,25,4,245],[1038,"Oleg Ivanov",2,16,3,1,2699],[1039,"Julia Smoli",2,16,5,2,545],[1040,"Eduard Fedotov",2,16,7,3,177],[1041,"Aleksei Teterev",2,16,8,4,155],[1042,"Valentin Bessonov",2,16,14,5,51],[1043,"Vadim Gri",2,16,15,6,70],[1044,"Leila Eerits",3,16,9,1,212],[1045,"Igor Hopp",3,16,12,2,372],[1046,"Aleksandr Tolbin",3,16,23,3,369],[1047,"Redmond Dulger",4,16,11,1,317],[1048,"Stepan Romanov",4,16,16,2,1017],[1049,"Jelena Fjodorova",6,16,18,1,415],[1050,"Aivo Peterson",7,16,2,1,3968],[1051,"Silvia Possaškova",7,16,17,2,163],[1052,"Olga Timofejeva",7,16,13,3,184],[1053,"Aleksandr Spossobin",7,16,21,4,53],[1054,"Marina Kozitskaja",7,16,24,5,29],[1055,"Sergei Jerjomin",9,16,22,1,719],[1056,"Igor Rosenfeld",10,16,1,1,651],[1057,"Viivi-Helbe Peljuhhovska",10,16,4,2,135],[1058,"Vjatšeslav Makaronski",12,16,20,1,288],[1059,"Teho Paulus",6,0,0,0,30],[1060,"Alar Kookmaa",4,0,0,0,29],[1061,"Andres Laiapea",8,0,0,0,124],[1062,"Indrek Nicholas Nurmberg",1,0,0,0,79],[1063,"Mihhail Stalnuhhin",7,0,0,0,4578],[1064,"Tarmo Kalde",6,0,0,0,23],[1065,"Argo Mõttus",11,0,0,0,105],[1066,"Vladas Radvilavičius",4,0,0,0,816],[1067,"Vello Kookmaa",4,0,0,0,33],[1068,"Sergei Svjatušenko",2,0,0,0,71]],"official":{"elected":[[821,"P",1,"4.8212",null],[921,"P",2,"2.5356",null],[784,"P",3,"1.4955",null],[811,"P",4,"1.4336",null],[880,"P",5,"1.3149",null],[796,"P",6,"1.2847",null],[946,"P",7,"1.1626",null],[847,"P",8,"1.1612",null],[862,"P",9,"1.0326",null],[650,"D",10,"0.9781",null],[936,"D",11,"0.9371",null],[871,"D",12,"0.9308",null],[612,"D",13,"0.9302",null],[571,"D",14,"0.8760",null],[659,"D",15,"0.8523",null],[785,"D",16,"0.7341",null],[890,"D",17,"0.7338",null],[839,"D",18,"0.7274",null],[797,"D",19,"0.7230",null],[561,"D",20,"0.7213",null],[980,"D",21,"0.7021",null],[755,"D",22,"0.6991",null],[901,"D",23,"0.6990",null],[321,"D",24,"0.6833",null],[900,"D",25,"0.6540",null],[572,"D",26,"0.6399",null],[812,"D",27,"0.6397",null],[446,"D",28,"0.6281",null],[799,"D",29,"0.6197",null],[714,"D",30,"0.6131",null],[640,"D",31,"0.6064",null],[589,"D",32,"0.5905",null],[765,"D",33,"0.5901",null],[546,"D",34,"0.5891",null],[798,"D",35,"0.5760",null],[746,"D",36,"0.5259",null],[910,"D",37,"0.5244",null],[696,"D",38,"0.5066",null],[597,"D",39,"0.5006",null],[362,"D",40,"0.4790",null],[641,"D",41,"0.4719",null],[371,"D",42,"0.4681",null],[621,"D",43,"0.4620",null],[686,"D",44,"0.4576",null],[912,"D",45,"0.4554",null],[863,"D",46,"0.4450",null],[872,"D",47,"0.4387",null],[421,"D",48,"0.4235",null],[535,"D",49,"0.4072",null],[822,"D",50,"0.4001",null],[630,"D",51,"0.3815",null],[464,"D",52,"0.3772",null],[488,"D",53,"0.3737",null],[697,"D",54,"0.3667",null],[671,"D",55,"0.3632",null],[516,"D",56,"0.3549",null],[881,"D",57,"0.3344",null],[775,"D",58,"0.3338",null],[923,"D",59,"0.3244",null],[1025,"D",60,"0.3148",null],[929,"D",61,"0.3143",null],[882,"D",62,"0.3047",null],[1016,"D",63,"0.3021",null],[409,"D",64,"0.2952",null],[652,"D",65,"0.2875",null],[892,"D",66,"0.2703",null],[854,"D",67,"0.2618",null],[788,"D",68,"0.2392",null],[506,"D",69,"0.2025",null],[824,"D",70,"0.1891",null],[814,"D",71,"0.1887",null],[826,"D",72,"0.1565",null],[825,"D",73,"0.1523",null],[827,"D",74,"0.1458",null],[925,"D",75,"0.1428",null],[390,"C",76,"0.2558","14392.6160"],[284,"C",77,"0.2878","11773.9104"],[380,"C",78,"0.3616","9992.1192"],[964,"C",79,"0.3618","9963.3262"],[660,"C",80,"0.1251","9397.0603"],[909,"C",81,"0.3360","9270.8265"],[487,"C",82,"0.3083","8707.8844"],[296,"C",83,"0.2996","8697.7215"],[722,"C",84,"0.1549","8689.2504"],[922,"C",85,"0.0990","8672.6583"],[873,"C",86,"0.2157","8669.0255"],[600,"C",87,"0.1712","8562.3553"],[891,"C",88,"0.2573","8424.8237"],[823,"C",89,"0.1376","8194.7038"],[987,"C",90,"0.2782","8150.5204"],[776,"C",91,"0.1849","8085.3051"],[604,"C",92,"0.1655","8079.1820"],[885,"C",93,"0.2097","7977.4626"],[436,"C",94,"0.3964","7832.0488"],[795,"C",95,"0.0959","7772.0317"],[400,"C",96,"0.2564","7712.8120"],[913,"C",97,"0.0756","7690.5869"],[573,"C",98,"0.1540","7650.1746"],[893,"C",99,"0.1303","7577.4583"],[672,"C",100,"0.3008","7563.6287"],[896,"C",101,"0.1025","7392.8901"]],"substitutes":{"9":{"national":[[899,3],[815,6],[840,10],[800,11],[903,14],[902,17],[884,19],[874,23],[789,24],[864,29],[883,30],[787,35],[810,36],[846,40],[887,42],[841,45],[806,48],[855,51],[886,53],[790,56],[803,60],[889,62],[905,65],[848,67],[865,72],[802,74],[829,75],[816,79],[894,81],[898,85],[856,87],[875,89],[820,93],[857,96],[907,98],[831,100],[879,104],[908,106],[869,110],[867,111],[842,116],[801,117],[818,122],[895,124],[813,127],[849,129],[843,132],[844,135],[906,138],[786,140],[876,142],[904,147],[852,148],[861,152],[835,153],[850,159],[830,160],[851,162],[866,165],[858,168],[845,172],[877,174],[834,176],[870,180],[791,183],[859,185],[792,187],[853,191],[878,194],[897,197],[837,199],[832,203],[828,204],[888,208],[817,211],[807,213],[794,216],[804,218],[805,223],[836,224],[793,227],[809,229],[819,234],[868,235],[860,239],[808,240],[838,246],[833,247]],"districts":{"1":[789,787],"2":[800],"3":[816],"5":[840,841,846,843],"6":[848],"7":[855,856,857],"8":[864],"9":[874],"10":[883,884,886,887],"11":[899],"12":[907,902,905]}},"11":{"national":[[547,2],[534,8],[642,13],[632,20],[562,25],[631,31],[590,38],[651,43],[613,50],[622,54],[598,61],[653,66],[605,73],[644,78],[574,86],[591,90],[599,97],[614,103],[646,109],[593,115],[623,119],[633,125],[549,130],[575,137],[592,143],[643,149],[615,154],[624,161],[634,166],[539,173],[655,179],[616,184],[635,190],[551,196],[579,202],[542,209],[636,214],[626,220],[578,226],[585,231],[647,237],[637,243],[648,248],[657,252],[638,256],[602,260],[587,264],[649,267],[628,271],[620,275],[625,279],[580,283],[594,287],[658,290],[536,295],[639,298],[596,303],[577,305],[603,309],[629,312],[548,317],[654,320],[608,324],[627,328],[607,331],[576,336],[645,339],[610,344],[606,346],[595,351],[618,354],[611,359],[586,362],[545,366],[609,369],[619,374],[601,377],[563,381],[550,385],[582,388],[588,392],[581,396],[537,400],[656,403],[617,407],[583,410],[584,415],[543,419],[540,423],[555,427],[567,430],[538,434],[541,438],[566,442],[560,446],[556,448],[554,452],[557,456],[564,461],[553,464],[565,468],[544,471],[568,475],[570,479],[552,483],[558,487],[559,490],[569,494]],"districts":{"1":[534],"2":[547,549],"3":[562],"5":[591,590],"6":[598],"8":[613,616,614],"9":[622,623,624],"10":[631,632,633],"11":[643,647,644,642,648],"12":[651,653]}},"14":{"national":[[988,1],[1027,9],[1017,15],[996,22],[973,28],[1026,33],[989,39],[1006,46],[1005,52],[937,58],[972,64],[979,71],[978,76],[965,83],[966,88],[1019,95],[995,101],[1015,108],[911,114],[1007,120],[938,126],[949,133],[982,139],[981,145],[997,151],[1018,158],[924,163],[975,170],[998,175],[1008,182],[914,188],[983,195],[1009,201],[915,206],[916,212],[926,219],[941,225],[984,232],[917,238],[928,245],[985,249],[1000,254],[932,257],[920,262],[1014,266],[1030,270],[1032,274],[990,277],[974,281],[999,285],[1031,289],[1004,294],[945,297],[986,302],[977,304],[918,310],[948,313],[1024,318],[1010,322],[992,326],[1028,330],[955,333],[953,337],[963,341],[1022,345],[940,350],[1013,353],[1011,358],[1021,361],[1020,365],[919,368],[931,373],[1029,378],[939,382],[944,386],[967,390],[960,393],[1033,397],[935,401],[957,406],[943,409],[1023,414],[993,417],[971,421],[1012,424],[947,429],[968,433],[942,437],[927,441],[930,445],[991,449],[933,453],[1002,457],[1003,462],[951,465],[950,470],[952,473],[969,477],[956,481],[994,485],[976,489],[970,493],[1001,497],[954,500],[934,502],[962,506],[959,508],[958,512],[961,514]],"districts":{"1":[917,911],"3":[938,937],"4":[949],"7":[982,981,979],"11":[1015,1017],"12":[1026,1027]}},"17":{"national":[[661,5],[737,12],[729,18],[691,27],[662,34],[699,41],[687,49],[715,55],[723,63],[730,70],[738,77],[747,84],[756,92],[766,99],[688,105],[698,113],[716,121],[739,128],[757,136],[767,141],[777,150],[664,157],[674,164],[689,171],[749,178],[758,186],[778,192],[700,200],[675,207],[711,215],[726,222],[750,228],[759,236],[701,244],[736,250],[760,255],[677,259],[692,263],[702,268],[728,273],[752,278],[761,282],[678,288],[721,291],[704,296],[754,301],[670,306],[673,311],[713,315],[690,319],[732,323],[783,329],[748,334],[724,338],[703,343],[745,347],[779,352],[706,357],[763,360],[705,367],[762,371],[681,375],[709,379],[684,384],[725,389],[663,394],[708,399],[781,402],[768,408],[676,413],[695,416],[734,422],[685,426],[782,431],[764,435],[720,440],[769,444],[743,450],[667,455],[733,458],[693,463],[669,469],[694,472],[773,478],[740,482],[774,486],[780,491],[770,496],[717,499],[719,503],[683,507],[712,509],[679,513],[707,517],[742,518],[666,521],[751,523],[731,525],[753,527],[741,530],[772,532],[735,534],[682,537],[744,538],[727,541],[771,544],[668,545],[718,548],[665,550],[710,552],[680,554]],"districts":{"1":[661,662],"2":[675,673],"3":[688,687],"4":[713,698,699,700],"5":[715],"9":[747],"10":[756,757,758],"12":[778]}},"13":{"national":[[465,4],[480,16],[497,26],[473,37],[472,47],[517,59],[437,68],[499,80],[411,91],[508,102],[518,112],[422,123],[423,134],[410,146],[526,155],[504,167],[412,177],[528,189],[447,198],[450,210],[466,221],[474,233],[510,241],[490,251],[441,258],[435,265],[415,272],[507,280],[514,286],[428,293],[427,299],[521,307],[417,314],[533,321],[515,327],[505,335],[479,342],[525,349],[496,355],[424,363],[509,370],[500,376],[478,383],[467,391],[520,398],[511,405],[463,411],[449,418],[413,425],[503,432],[471,439],[532,447],[455,454],[519,460],[524,466],[483,474],[416,480],[502,488],[430,495],[476,501],[453,505],[501,511],[469,515],[438,519],[482,522],[440,526],[445,529],[475,533],[439,536],[426,540],[498,542],[459,546],[493,549],[491,553],[481,556],[418,558],[414,560],[477,562],[429,563],[522,565],[531,567],[527,569],[442,571],[530,573],[432,575],[512,577],[513,578],[448,580],[494,582],[468,584],[444,586],[420,588],[425,590],[457,592],[484,593],[492,595],[489,597],[495,599],[462,601],[419,603],[431,605],[523,606],[486,608],[460,610],[529,612],[470,614],[451,616],[434,618],[461,620],[433,621],[452,623],[454,625],[458,627],[485,629],[456,631],[443,633]],"districts":{"1":[411,410],"2":[422],"4":[447,450],"5":[465],"8":[490],"10":[505],"11":[515]}},"15":{"national":[[339,7],[312,21],[285,32],[322,44],[355,57],[297,69],[311,82],[347,94],[324,107],[381,118],[328,131],[298,144],[340,156],[354,169],[363,181],[372,193],[402,205],[341,217],[349,230],[364,242],[373,253],[393,261],[342,269],[384,276],[394,284],[351,292],[395,300],[352,308],[408,316],[379,325],[399,332],[323,340],[313,348],[350,356],[396,364],[299,372],[401,380],[325,387],[346,395],[405,404],[407,412],[365,420],[326,428],[301,436],[319,443],[382,451],[329,459],[391,467],[287,476],[375,484],[383,492],[310,498],[406,504],[392,510],[378,516],[327,520],[367,524],[404,528],[353,531],[289,535],[403,539],[368,543],[286,547],[314,551],[398,555],[293,557],[343,559],[357,561],[370,564],[377,566],[387,568],[397,570],[288,572],[374,574],[389,576],[320,579],[361,581],[303,583],[386,585],[295,587],[344,589],[316,591],[304,594],[385,596],[336,598],[366,600],[358,602],[348,604],[309,607],[308,609],[332,611],[302,613],[388,615],[305,617],[331,619],[335,622],[376,624],[330,626],[292,628],[337,630],[315,632],[345,634],[333,635],[291,636],[294,637],[334,638],[317,639],[300,640],[369,641],[306,642],[290,643],[338,644],[307,645],[360,646],[359,647],[318,648],[356,649]],"districts":{"4":[324]}}},"partyVotes":{"9":190632,"11":97966,"14":93254,"17":81329,"13":56584,"15":50118,"16":14605,"12":14037,"0":5888,"10":5886}}}</script>
+<script>/* Riigikogu valimistulemuse arvutus — RKVS § 62, § 75, § 76; RKLS § 12 */
+(function (root) {
+  'use strict';
+
+  var EXP = 0.9; // modifitseeritud d'Hondt: jagajad 1, 2^0,9, 3^0,9, ...
+
+  function divisor(k) { return Math.pow(k, EXP); }
+
+  // Kandidaatide võrdlemine "häälte protsent lihtkvoodist" järgi (täpne, ristkorrutisega)
+  // tagastab <0 kui a-l on suurem protsent
+  function cmpRatioDesc(a, b) {
+    var x = b.votes * b.M * a.T, y = a.votes * a.M * b.T;
+    return x - y;
+  }
+
+  function compute(model) {
+    var S = 0;
+    var dist = new Map();
+    model.districts.forEach(function (d) {
+      dist.set(d.nr, { nr: d.nr, name: d.name, M: d.mandates, T: 0, cands: [], party: new Map() });
+      S += d.mandates;
+    });
+    var parties = model.parties.slice();
+    var partyById = new Map(parties.map(function (p) { return [p.id, p]; }));
+
+    // Sisemised kandidaadikirjed
+    var cands = model.candidates.map(function (c) {
+      return {
+        nr: c.nr, name: c.name, district: c.district, party: c.party || 0,
+        natPos: c.natPos || 0, distPos: c.distPos || 0,
+        votes: Math.max(0, Math.floor(+c.votes || 0)), out: !!c.out,
+        M: 0, T: 0, elected: null, compFigure: null, compK: null,
+        distSubRank: null, natSubRank: null
+      };
+    });
+    var byNr = new Map(cands.map(function (c) { return [c.nr, c]; }));
+
+    // § 62 lg 9: välja langenud üksikkandidaadi hääli ei arvestata; erakonna kandidaadi hääled jäävad erakonnale
+    cands.forEach(function (c) {
+      var ds = dist.get(c.district);
+      if (!ds) return;
+      c.counted = !(c.out && !c.party);
+      if (c.counted) ds.T += c.votes;
+      ds.cands.push(c);
+    });
+    var N = 0;
+    dist.forEach(function (ds) {
+      N += ds.T;
+      ds.cands.forEach(function (c) { c.M = ds.M; c.T = ds.T; });
+    });
+
+    // Erakondade häälte summad
+    var pv = new Map();
+    parties.forEach(function (p) { pv.set(p.id, 0); });
+    var indVotes = 0;
+    cands.forEach(function (c) {
+      if (!c.counted) return;
+      if (c.party) pv.set(c.party, (pv.get(c.party) || 0) + c.votes); else indVotes += c.votes;
+    });
+    // 5% künnis (§ 62 lg 3, lg 4): 20·V ≥ N
+    var qualifies = new Map();
+    parties.forEach(function (p) { qualifies.set(p.id, N > 0 && 20 * pv.get(p.id) >= N); });
+
+    function ge(c, pctTimes) { // votes ≥ Q / pctTimes  ⇔  pctTimes·votes·M ≥ T
+      return c.T > 0 && c.votes > 0 && pctTimes * c.votes * c.M >= c.T;
+    }
+
+    // 1. Isikumandaadid (§ 62 lg 2)
+    cands.forEach(function (c) {
+      if (!c.out && c.counted && ge(c, 1)) c.elected = 'P';
+    });
+
+    // 2. Ringkonnamandaadid (§ 62 lg 3)
+    var districtRows = [];
+    dist.forEach(function (ds) {
+      var byParty = new Map();
+      ds.cands.forEach(function (c) {
+        if (!c.party) return;
+        if (!byParty.has(c.party)) byParty.set(c.party, []);
+        byParty.get(c.party).push(c);
+      });
+      var row = { nr: ds.nr, name: ds.name, M: ds.M, T: ds.T, parties: [], independents: [] };
+      byParty.forEach(function (list, pid) {
+        var V = 0;
+        list.forEach(function (c) { V += c.votes; });
+        // § 62 lg 3: järjestus häälte järgi, võrdsuse korral üleriigilises nimekirjas eespool olev
+        var ranked = list.slice().sort(function (a, b) { return (b.votes - a.votes) || (a.natPos - b.natPos) || (a.nr - b.nr); });
+        var entry = { party: pid, votes: V, quotas: ds.T > 0 ? V * ds.M / ds.T : 0, qualifies: qualifies.get(pid), whole: 0, bonus: false, won: 0, filled: 0, personal: 0, ranked: ranked.map(function (c) { return c.nr; }) };
+        list.forEach(function (c) { if (c.elected === 'P') entry.personal++; });
+        if (qualifies.get(pid) && ds.T > 0) {
+          var whole = Math.floor(V * ds.M / ds.T);
+          var rem = V * ds.M - whole * ds.T; // jääk ühikutes 1/M häält
+          var n = whole;
+          if (4 * rem >= 3 * ds.T) { n++; entry.bonus = true; } // jääk ≥ 75% lihtkvoodist
+          entry.whole = whole; entry.won = n;
+          var seats = 0;
+          for (var i = 0; i < ranked.length && seats < n; i++) {
+            var c = ranked[i];
+            if (c.elected === 'P') { seats++; continue; }
+            if (c.out) continue;
+            if (ge(c, 10)) { c.elected = 'D'; seats++; } // vähemalt 10% lihtkvoodist
+            else break; // edasi on kõigil veel vähem hääli
+          }
+          entry.filled = seats;
+        } else {
+          entry.filled = entry.personal; // alla künnise: ainult isikumandaadid
+        }
+        row.parties.push(entry);
+      });
+      row.parties.sort(function (a, b) { return b.votes - a.votes; });
+      ds.cands.forEach(function (c) { if (!c.party) row.independents.push(c.nr); });
+      districtRows.push(row);
+    });
+    districtRows.sort(function (a, b) { return a.nr - b.nr; });
+
+    // Erakonna ringkondades saadud mandaadid
+    var seatsD = new Map(), seatsP = new Map(), seatsC = new Map();
+    parties.forEach(function (p) { seatsD.set(p.id, 0); seatsP.set(p.id, 0); seatsC.set(p.id, 0); });
+    var indElected = 0, electedInDistricts = 0;
+    cands.forEach(function (c) {
+      if (c.elected === 'P' || c.elected === 'D') {
+        electedInDistricts++;
+        if (c.party) {
+          if (c.elected === 'P') seatsP.set(c.party, seatsP.get(c.party) + 1);
+          else seatsD.set(c.party, seatsD.get(c.party) + 1);
+        } else indElected++;
+      }
+    });
+
+    // 3. Kompensatsioonimandaadid (§ 62 lg 4–8)
+    var pool = S - electedInDistricts;
+    // Erakonna üleriigiline järjekord: ≥5% lihtkvoodist nimekirja järjekorras, seejärel ülejäänud häälteprotsendi järgi
+    function nationalOrder(pid) {
+      var a = [], b = [];
+      cands.forEach(function (c) {
+        if (c.party !== pid || c.elected || c.out) return;
+        if (ge(c, 20)) a.push(c); else b.push(c);
+      });
+      a.sort(function (x, y) { return (x.natPos - y.natPos) || (x.nr - y.nr); });
+      b.sort(function (x, y) { return cmpRatioDesc(x, y) || (x.natPos - y.natPos) || (x.nr - y.nr); });
+      return { list: a.concat(b), nA: a.length };
+    }
+    var qParties = parties.filter(function (p) { return qualifies.get(p.id); });
+    var order = new Map(), kUsed = new Map(), dCount = new Map();
+    qParties.forEach(function (p) {
+      order.set(p.id, nationalOrder(p.id));
+      kUsed.set(p.id, 0);
+      dCount.set(p.id, seatsP.get(p.id) + seatsD.get(p.id));
+    });
+    var compList = [];
+    var unallocated = 0;
+    for (var s = 0; s < pool; s++) {
+      var best = null, bestVal = -1;
+      qParties.forEach(function (p) {
+        var o = order.get(p.id);
+        if (kUsed.get(p.id) >= o.list.length) return; // § 62 lg 8
+        var val = pv.get(p.id) / divisor(dCount.get(p.id) + kUsed.get(p.id) + 1);
+        // võrdsuse korral koondnimekirjas tagapool olev erakond
+        if (val > bestVal || (val === bestVal && best && p.lot > best.lot)) { best = p; bestVal = val; }
+      });
+      if (!best || bestVal <= 0) { unallocated = pool - s; break; }
+      var k = kUsed.get(best.id);
+      var o = order.get(best.id);
+      var cand = o.list[k];
+      cand.elected = 'C';
+      cand.compFigure = bestVal;
+      cand.compK = dCount.get(best.id) + k + 1;
+      cand.compBelow5 = k >= o.nA; // § 62 lg 7 rakendus
+      kUsed.set(best.id, k + 1);
+      seatsC.set(best.id, k + 1);
+      compList.push({ nr: cand.nr, party: best.id, figure: bestVal, k: cand.compK });
+    }
+
+    // Võrdlusarvude tabel kuvamiseks
+    var figures = [];
+    qParties.forEach(function (p) {
+      var d = dCount.get(p.id), c = seatsC.get(p.id);
+      var upto = Math.max(d + c + 3, 3);
+      for (var k = 1; k <= upto; k++) {
+        figures.push({ party: p.id, k: k, divisor: divisor(k), value: pv.get(p.id) / divisor(k), state: k <= d ? 'district' : (k <= d + c ? 'comp' : 'next') });
+      }
+    });
+
+    // 4. Asendusliikmed (§ 75)
+    var subs = { district: new Map(), national: new Map() };
+    qParties.forEach(function (p) {
+      var dm = new Map();
+      dist.forEach(function (ds) {
+        // ringkonna asendusliikmed registreeritakse ainult seal, kus erakonnal on ringkonnas valituks osutunud liikmeid
+        var hasElected = ds.cands.some(function (c) { return c.party === p.id && (c.elected === 'P' || c.elected === 'D'); });
+        var l = !hasElected ? [] : ds.cands.filter(function (c) { return c.party === p.id && !c.elected && !c.out && ge(c, 10); });
+        // häälte arvu järgi, võrdsuse korral ringkonnanimekirjas eespool olev
+        l.sort(function (a, b) { return (b.votes - a.votes) || (a.distPos - b.distPos) || (a.nr - b.nr); });
+        l.forEach(function (c, i) { c.distSubRank = i + 1; });
+        dm.set(ds.nr, l.map(function (c) { return c.nr; }));
+      });
+      subs.district.set(p.id, dm);
+      var nat = nationalOrder(p.id); // kõik valimata jäänud: ≥5% nimekirja järjekorras, siis häälteprotsendi järgi
+      nat.list.forEach(function (c, i) { c.natSubRank = i + 1; });
+      subs.national.set(p.id, nat.list.map(function (c) { return c.nr; }));
+    });
+
+    // 5. Lisamandaatide võrdlusarvude tabel (§ 76)
+    var lisa = [];
+    qParties.forEach(function (p) {
+      var total = seatsP.get(p.id) + seatsD.get(p.id) + seatsC.get(p.id);
+      var nsub = subs.national.get(p.id).length;
+      for (var j = 1; j <= nsub; j++) {
+        lisa.push({ party: p.id, j: j, k: total + j, value: pv.get(p.id) / divisor(total + j), sub: subs.national.get(p.id)[j - 1] });
+      }
+    });
+    lisa.sort(function (a, b) {
+      if (b.value !== a.value) return b.value - a.value;
+      var va = pv.get(a.party), vb = pv.get(b.party);
+      if (va !== vb) return vb - va;
+      return partyById.get(b.party).lot - partyById.get(a.party).lot;
+    });
+    lisa.forEach(function (x, i) { x.rank = i + 1; });
+
+    // Valitud liikmete nimekiri
+    var elected = cands.filter(function (c) { return c.elected; });
+    var typeRank = { P: 0, D: 1, C: 2 };
+    elected.sort(function (a, b) {
+      if (a.elected !== b.elected) return typeRank[a.elected] - typeRank[b.elected];
+      if (a.elected === 'C') return b.compFigure - a.compFigure;
+      return cmpRatioDesc(a, b) || (a.nr - b.nr);
+    });
+    elected.forEach(function (c, i) { c.orderNr = i + 1; });
+
+    var partySummary = parties.map(function (p) {
+      return {
+        id: p.id, votes: pv.get(p.id), share: N > 0 ? pv.get(p.id) / N : 0, qualifies: qualifies.get(p.id),
+        personal: seatsP.get(p.id), district: seatsD.get(p.id), comp: seatsC.get(p.id),
+        total: seatsP.get(p.id) + seatsD.get(p.id) + seatsC.get(p.id)
+      };
+    });
+
+    return {
+      S: S, N: N, indVotes: indVotes, indElected: indElected,
+      thresholdVotes: N / 20,
+      pool: pool, unallocated: unallocated,
+      districts: districtRows, parties: partySummary, partyVotes: pv, qualifies: qualifies,
+      cands: cands, byNr: byNr, elected: elected, compList: compList, figures: figures,
+      subs: subs, lisa: lisa
+    };
+  }
+
+  // Asendusliikmete järjekord konkreetse liikme jaoks (RKLS § 12)
+  function substituteChain(res, nr) {
+    var c = res.byNr.get(nr);
+    if (!c || !c.elected) return { district: [], national: [], lisa: true };
+    if (!c.party || !res.qualifies.get(c.party)) return { district: [], national: [], lisa: true };
+    var nat = res.subs.national.get(c.party) || [];
+    if (c.elected === 'C') return { district: [], national: nat.slice(), lisa: true };
+    var dl = (res.subs.district.get(c.party).get(c.district)) || [];
+    var inD = new Set(dl);
+    return { district: dl.slice(), national: nat.filter(function (x) { return !inD.has(x); }), lisa: true };
+  }
+
+  // Volituste peatumise/lõppemise simulatsioon (RKLS § 11–12). leaves = kandidaatide numbrid lahkumise järjekorras.
+  function simulate(res, leaves) {
+    var seats = res.elected.map(function (c) {
+      return { orig: c.nr, holder: c.nr, kind: c.elected, party: c.party, district: c.district, history: [{ nr: c.nr, via: 'valitud' }] };
+    });
+    var seated = new Map();
+    seats.forEach(function (s) { seated.set(s.holder, s); });
+    var gone = new Set();
+    var lisaUsed = 0;
+    var log = [];
+
+    function available(nr) { return !gone.has(nr) && !seated.has(nr); }
+
+    function pickLisa() {
+      while (lisaUsed < res.lisa.length) {
+        var f = res.lisa[lisaUsed++];
+        var nat = res.subs.national.get(f.party) || [];
+        for (var i = 0; i < nat.length; i++) if (available(nat[i])) return { nr: nat[i], via: 'lisamandaat', figure: f };
+      }
+      return null;
+    }
+
+    function fill(seat) {
+      var q = seat.party && res.qualifies.get(seat.party);
+      if (q) {
+        if (seat.kind !== 'C') {
+          var dl = res.subs.district.get(seat.party).get(seat.district) || [];
+          for (var i = 0; i < dl.length; i++) if (available(dl[i])) return { nr: dl[i], via: 'ringkond', rank: i + 1 };
+        }
+        var nat = res.subs.national.get(seat.party) || [];
+        for (var j = 0; j < nat.length; j++) if (available(nat[j])) return { nr: nat[j], via: 'üleriigiline', rank: j + 1 };
+      }
+      return pickLisa();
+    }
+
+    leaves.forEach(function (nr) {
+      if (gone.has(nr)) return;
+      var seat = seated.get(nr);
+      gone.add(nr);
+      if (!seat) { log.push({ nr: nr, type: 'loobus' }); return; }
+      seated.delete(nr);
+      var r = fill(seat);
+      if (r) {
+        seat.holder = r.nr;
+        seat.history.push(r);
+        seated.set(r.nr, seat);
+        log.push({ nr: nr, type: 'lahkus', by: r });
+      } else {
+        seat.holder = null;
+        seat.history.push({ nr: null, via: 'täitmata' });
+        log.push({ nr: nr, type: 'lahkus', by: null });
+      }
+    });
+    return { seats: seats, log: log, gone: gone };
+  }
+
+  var api = { compute: compute, substituteChain: substituteChain, simulate: simulate, divisor: divisor };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.RKEngine = api;
+})(this);
+</script>
+<script>(function () {
+  'use strict';
+  var E = window.RKEngine;
+  var RAW = JSON.parse(document.getElementById('rk-data').textContent);
+
+  // ---------- abifunktsioonid
+  function NF(d) { return new Intl.NumberFormat('et-EE', { minimumFractionDigits: d, maximumFractionDigits: d }); }
+  var nf0 = NF(0), nf1 = NF(1), nf2 = NF(2), nf4 = NF(4);
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (ch) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]; }); }
+  function $(s, el) { return (el || document).querySelector(s); }
+  function byId(id) { return document.getElementById(id); }
+  function ratioOf(c) { return c.T > 0 ? c.votes * c.M / c.T : 0; }
+  function pctQ(c) { return nf1.format(ratioOf(c) * 100) + '%'; }
+  function reach(c, k) { return c.T > 0 && c.votes > 0 && k * c.votes * c.M >= c.T; }
+  function norm(s) { return String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(); }
+  function plural(n, one, many) { return n + ' ' + (n === 1 ? one : many); }
+
+  var TYPE = { P: 'Isikumandaat', D: 'Ringkonnamandaat', C: 'Kompensatsioonimandaat' };
+  var TYPE_LC = { P: 'isikumandaat', D: 'ringkonnamandaat', C: 'kompensatsioonimandaat' };
+  var SHORT_D = { 1: 'Haabersti, Põhja-Tallinn, Kristiine', 2: 'Kesklinn, Lasnamäe, Pirita', 3: 'Mustamäe, Nõmme', 4: 'Harju- ja Raplamaa', 5: 'Hiiu-, Lääne-, Saaremaa', 6: 'Lääne-Virumaa', 7: 'Ida-Virumaa', 8: 'Järva- ja Viljandimaa', 9: 'Jõgeva- ja Tartumaa', 10: 'Tartu linn', 11: 'Võru-, Valga-, Põlvamaa', 12: 'Pärnumaa' };
+  var IND = { id: 0, name: 'Üksikkandidaadid', short: 'Üksik', color: '#8a94a3', lot: 1e9 };
+  var TABS = ['haaled', 'liikmed', 'jaotus', 'asendusliikmed', 'kontroll', 'reeglid'];
+  var LS_KEY = 'rk-valimismudel-v1';
+  var HEX = /^#[0-9a-fA-F]{3,8}$/;
+
+  // loetav tekstivärv erakonna värvi taustal (WCAG kontrasti järgi)
+  function textOn(hex) {
+    var h = String(hex).replace('#', '');
+    if (h.length === 3) h = h.split('').map(function (x) { return x + x; }).join('');
+    h = h.slice(0, 6);
+    var ch = [0, 2, 4].map(function (i) { var v = parseInt(h.substr(i, 2), 16) / 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); });
+    var L = 0.2126 * ch[0] + 0.7152 * ch[1] + 0.0722 * ch[2];
+    return 1.05 / (L + 0.05) >= (L + 0.05) / 0.0583 ? '#ffffff' : '#10161e';
+  }
+
+  function glyph(t, color) {
+    if (t === 'P') return '<svg class="g" viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="4.3" style="fill:' + color + ';stroke:var(--ink);stroke-width:1.7"/></svg>';
+    if (t === 'D') return '<svg class="g" viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="5" style="fill:' + color + ';stroke:var(--seat-edge);stroke-width:.8"/></svg>';
+    return '<svg class="g" viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="4.2" style="fill:var(--surface);stroke:' + color + ';stroke-width:2.2"/></svg>';
+  }
+
+  // ---------- mudel
+  function baseModel() {
+    return {
+      districts: RAW.districts.map(function (d) { return { nr: d.nr, name: d.name, short: SHORT_D[d.nr] || d.name, mandates: d.mandates, voters: d.eligible }; }),
+      parties: RAW.parties.map(function (p) { return { id: p.id, name: p.name, short: p.short, color: p.color, lot: p.lot }; }),
+      candidates: RAW.candidates.map(function (r) { return { nr: r[0], name: r[1], district: r[2], party: r[3], natPos: r[4], distPos: r[5], votes: r[6], out: false }; })
+    };
+  }
+  var BASE = baseModel();
+  var BASE_VOTES = new Map(BASE.candidates.map(function (c) { return [c.nr, c.votes]; }));
+  var BASE_MAND = new Map(BASE.districts.map(function (d) { return [d.nr, d.mandates]; }));
+  var BASE_VOTERS = new Map(BASE.districts.map(function (d) { return [d.nr, d.voters]; }));
+  var BASE_CAND = new Map(BASE.candidates.map(function (c) { return [c.nr, c]; }));
+  var OFF_TYPE = new Map(RAW.official.elected.map(function (e) { return [e[0], e[1]]; }));
+  var OFF_SEATS = new Map();
+  RAW.official.elected.forEach(function (e) { var p = BASE_CAND.get(e[0]).party; OFF_SEATS.set(p, (OFF_SEATS.get(p) || 0) + 1); });
+
+  var model, isBase = true;
+  var state = { tab: 'haaled', district: 1, leaves: [], subsParty: null, swingParty: null, struct: 0 };
+  var partyMap, candMap, distMap;
+  var res, sim, seatedNow = new Set(), byOrig = new Map();
+
+  function index() {
+    partyMap = new Map(model.parties.map(function (p) { return [p.id, p]; }));
+    candMap = new Map(model.candidates.map(function (c) { return [c.nr, c]; }));
+    distMap = new Map(model.districts.map(function (d) { return [d.nr, d]; }));
+    if (!distMap.has(state.district)) state.district = model.districts[0].nr;
+  }
+  function partyOf(id) {
+    if (!id) return IND;
+    return partyMap.get(id) || { id: id, name: 'Erakond ' + id, short: String(id), color: '#999999', lot: 0 };
+  }
+  function pname(id) { return id ? partyOf(id).name : 'Üksikkandidaat'; }
+  function cname(nr) { var c = candMap.get(nr); return c ? c.name : String(nr); }
+  function dname(nr) { var d = distMap.get(nr); return d ? (d.short || d.name) : String(nr); }
+
+  function sameAsBase(m) {
+    if (m.candidates.length !== BASE.candidates.length || m.districts.length !== BASE.districts.length) return false;
+    for (var i = 0; i < m.candidates.length; i++) {
+      var c = m.candidates[i], b = BASE_CAND.get(c.nr);
+      if (!b || b.party !== c.party || b.district !== c.district || b.natPos !== c.natPos || b.distPos !== c.distPos) return false;
+    }
+    return m.districts.every(function (d) { return BASE_MAND.has(d.nr); });
+  }
+
+  function validateModel(o) {
+    function int(x, min) { var n = Number(x); return Number.isInteger(n) && n >= min ? n : null; }
+    if (!o || typeof o !== 'object') return { error: 'Andmed peavad olema JSON-objekt.' };
+    if (!Array.isArray(o.districts) || !o.districts.length) return { error: 'Puudub „districts“ massiiv.' };
+    if (!Array.isArray(o.parties)) return { error: 'Puudub „parties“ massiiv.' };
+    if (!Array.isArray(o.candidates) || !o.candidates.length) return { error: 'Puudub „candidates“ massiiv.' };
+    var districts = [], dset = new Set();
+    for (var i = 0; i < o.districts.length; i++) {
+      var d = o.districts[i], nr = int(d && d.nr, 1), m = int(d && d.mandates, 0);
+      if (nr === null || m === null) return { error: 'Ringkond nr ' + (i + 1) + ': nr ja mandates peavad olema täisarvud.' };
+      if (dset.has(nr)) return { error: 'Ringkonna number ' + nr + ' kordub.' };
+      dset.add(nr);
+      var dn = String(d.name || 'Ringkond ' + nr);
+      var baseD = BASE.districts.filter(function (x) { return x.nr === nr; })[0];
+      var short = d.short ? String(d.short) : (baseD && baseD.name === dn ? baseD.short : dn);
+      districts.push({ nr: nr, name: dn, short: short, mandates: m, voters: int(d.voters, 0) || 0 });
+    }
+    var parties = [], pset = new Set();
+    for (var j = 0; j < o.parties.length; j++) {
+      var p = o.parties[j], id = int(p && p.id, 1);
+      if (id === null) return { error: 'Erakond nr ' + (j + 1) + ': id peab olema positiivne täisarv.' };
+      if (pset.has(id)) return { error: 'Erakonna id ' + id + ' kordub.' };
+      pset.add(id);
+      parties.push({ id: id, name: String(p.name || 'Erakond ' + id), short: String(p.short || p.name || id), color: HEX.test(p.color) ? p.color : '#888888', lot: Number.isFinite(+p.lot) ? +p.lot : j + 1 });
+    }
+    var cands = [], cset = new Set();
+    for (var k = 0; k < o.candidates.length; k++) {
+      var c = o.candidates[k], cnr = int(c && c.nr, 1), cd = int(c && c.district, 1), cp = int(c && (c.party || 0), 0), v = int(c && (c.votes || 0), 0);
+      if (cnr === null || cd === null || cp === null || v === null) return { error: 'Kandidaat ' + (k + 1) + ': nr, district, party ja votes peavad olema mittenegatiivsed täisarvud.' };
+      if (cset.has(cnr)) return { error: 'Kandidaadi number ' + cnr + ' kordub.' };
+      if (!dset.has(cd)) return { error: 'Kandidaat ' + cnr + ': tundmatu ringkond ' + cd + '.' };
+      if (cp && !pset.has(cp)) return { error: 'Kandidaat ' + cnr + ': tundmatu erakond ' + cp + '.' };
+      cset.add(cnr);
+      cands.push({ nr: cnr, name: String(c.name || 'Kandidaat ' + cnr), district: cd, party: cp, natPos: int(c.natPos, 0) || 0, distPos: int(c.distPos, 0) || 0, votes: v, out: !!c.out });
+    }
+    return { ok: true, model: { districts: districts, parties: parties, candidates: cands } };
+  }
+
+  // ---------- salvestamine (ainult selle brauseri mugavuseks)
+  function save() {
+    try {
+      var payload = { v: 1, tab: state.tab, district: state.district, leaves: state.leaves, subsParty: state.subsParty };
+      if (isBase) {
+        var votes = {}, out = [], mand = {}, voters = {};
+        model.candidates.forEach(function (c) { if (c.votes !== BASE_VOTES.get(c.nr)) votes[c.nr] = c.votes; if (c.out) out.push(c.nr); });
+        model.districts.forEach(function (d) { if (d.mandates !== BASE_MAND.get(d.nr)) mand[d.nr] = d.mandates; if (d.voters !== BASE_VOTERS.get(d.nr)) voters[d.nr] = d.voters; });
+        payload.base = { votes: votes, out: out, mand: mand, voters: voters };
+      } else payload.model = model;
+      localStorage.setItem(LS_KEY, JSON.stringify(payload));
+    } catch (e) { /* salvestus pole saadaval */ }
+  }
+  var saveT = 0;
+  function saveSoon() { clearTimeout(saveT); saveT = setTimeout(save, 400); }
+  function load() {
+    var p = null;
+    try { p = JSON.parse(localStorage.getItem(LS_KEY) || 'null'); } catch (e) { p = null; }
+    model = baseModel(); isBase = true;
+    if (p && p.v === 1) {
+      if (p.model) {
+        var v = validateModel(p.model);
+        if (v.ok) { model = v.model; isBase = sameAsBase(model); }
+      } else if (p.base) {
+        var cm = new Map(model.candidates.map(function (c) { return [c.nr, c]; }));
+        Object.keys(p.base.votes || {}).forEach(function (k) { var c = cm.get(+k), x = Math.floor(+p.base.votes[k]); if (c && x >= 0) c.votes = x; });
+        (p.base.out || []).forEach(function (k) { var c = cm.get(+k); if (c) c.out = true; });
+        model.districts.forEach(function (d) {
+          if (p.base.mand && p.base.mand[d.nr] != null && +p.base.mand[d.nr] >= 0) d.mandates = Math.floor(+p.base.mand[d.nr]);
+          if (p.base.voters && p.base.voters[d.nr] != null && +p.base.voters[d.nr] >= 0) d.voters = Math.floor(+p.base.voters[d.nr]);
+        });
+      }
+      if (TABS.indexOf(p.tab) >= 0) state.tab = p.tab;
+      if (p.district) state.district = +p.district;
+      if (Array.isArray(p.leaves)) state.leaves = p.leaves.map(Number).filter(Number.isInteger);
+      if (p.subsParty) state.subsParty = +p.subsParty;
+    }
+    var h = (location.hash || '').replace('#', '');
+    if (TABS.indexOf(h) >= 0) state.tab = h;
+    index();
+  }
+
+  // ---------- arvutus
+  function recompute() {
+    res = E.compute(model);
+    state.leaves = state.leaves.filter(function (nr) { return candMap.has(nr); });
+    sim = E.simulate(res, state.leaves);
+    seatedNow = new Set(); byOrig = new Map();
+    sim.seats.forEach(function (s) { if (s.holder) seatedNow.add(s.holder); byOrig.set(s.orig, s); });
+  }
+  function changedCount() {
+    if (!isBase) return -1;
+    var n = 0;
+    model.candidates.forEach(function (c) { if (c.votes !== BASE_VOTES.get(c.nr) || c.out) n++; });
+    model.districts.forEach(function (d) { if (d.mandates !== BASE_MAND.get(d.nr)) n++; });
+    return n;
+  }
+
+  // ---------- kokkuvõte
+  var hemiCache = { S: -1 };
+  function hemiLayout(S) {
+    if (S <= 0) return { seats: [], rs: 0.05 };
+    var rows = Math.max(2, Math.round(Math.sqrt(S) * 0.6)), r0 = 0.42, r1 = 1;
+    var radii = [];
+    for (var i = 0; i < rows; i++) radii.push(r0 + (r1 - r0) * i / (rows - 1));
+    var sumR = radii.reduce(function (a, b) { return a + b; }, 0);
+    var counts = radii.map(function (r) { return Math.floor(S * r / sumR); });
+    var left = S - counts.reduce(function (a, b) { return a + b; }, 0);
+    var fr = radii.map(function (r, i) { return { i: i, f: S * r / sumR - counts[i] }; }).sort(function (a, b) { return b.f - a.f; });
+    for (var k = 0; k < left; k++) counts[fr[k % rows].i]++;
+    var seats = [];
+    radii.forEach(function (r, i) {
+      var n = counts[i];
+      for (var j = 0; j < n; j++) {
+        var a = n === 1 ? Math.PI / 2 : Math.PI * (1 - j / (n - 1));
+        seats.push({ x: r * Math.cos(a), y: -r * Math.sin(a), a: a, r: r });
+      }
+    });
+    seats.sort(function (s, t) { return (t.a - s.a) || (s.r - t.r); });
+    var gap = (r1 - r0) / (rows - 1), minArc = Infinity;
+    radii.forEach(function (r, i) { if (counts[i] > 1) minArc = Math.min(minArc, Math.PI * r / (counts[i] - 1)); });
+    return { seats: seats, rs: 0.43 * Math.min(gap, minArc) };
+  }
+  function partiesByVotes() {
+    var list = res.parties.slice().sort(function (a, b) { return (b.total - a.total) || (b.votes - a.votes); });
+    return list;
+  }
+  function renderHemi() {
+    if (hemiCache.S !== res.S) hemiCache = { S: res.S, L: hemiLayout(res.S) };
+    var L = hemiCache.L, rs = L.rs;
+    var typeRank = { P: 0, D: 1, C: 2 };
+    var members = [];
+    partiesByVotes().forEach(function (p) {
+      res.elected.filter(function (c) { return c.party === p.id; })
+        .sort(function (a, b) { return (typeRank[a.elected] - typeRank[b.elected]) || (a.orderNr - b.orderNr); })
+        .forEach(function (c) { members.push(c); });
+    });
+    res.elected.filter(function (c) { return !c.party; }).forEach(function (c) { members.push(c); });
+    var out = [];
+    L.seats.forEach(function (s, i) {
+      var c = members[i], x = s.x.toFixed(4), y = s.y.toFixed(4);
+      if (!c) { out.push('<circle cx="' + x + '" cy="' + y + '" r="' + (rs * 0.8).toFixed(4) + '" style="fill:none;stroke:var(--rule-2);stroke-width:' + (rs * 0.2).toFixed(4) + ';stroke-dasharray:' + (rs * 0.35).toFixed(4) + '"><title>Jaotamata mandaat</title></circle>'); return; }
+      var col = partyOf(c.party).color, st;
+      if (c.elected === 'P') st = 'fill:' + col + ';stroke:var(--ink);stroke-width:' + (rs * 0.36).toFixed(4);
+      else if (c.elected === 'D') st = 'fill:' + col + ';stroke-width:' + (rs * 0.12).toFixed(4);
+      else st = 'fill:var(--surface);stroke:' + col + ';stroke-width:' + (rs * 0.46).toFixed(4);
+      var r = c.elected === 'D' ? rs : rs * 0.82;
+      out.push('<circle class="seat seat-' + c.elected + '" data-open="' + c.nr + '" cx="' + x + '" cy="' + y + '" r="' + r.toFixed(4) + '" style="' + st + '"><title>' + esc(c.name + ' — ' + partyOf(c.party).short + ', ' + TYPE_LC[c.elected]) + '</title></circle>');
+    });
+    out.push('<text class="hemi-n" x="0" y="-0.13">' + res.elected.length + '</text>');
+    out.push('<text class="hemi-l" x="0" y="-0.02">liiget · enamus ' + (Math.floor(res.S / 2) + 1) + '</text>');
+    byId('hemi').innerHTML = out.join('');
+    var lg = '<span>' + glyph('P', 'var(--ink-3)') + 'isikumandaat</span><span>' + glyph('D', 'var(--ink-3)') + 'ringkonnamandaat</span><span>' + glyph('C', 'var(--ink-3)') + 'kompensatsioonimandaat</span>';
+    if (res.unallocated) lg += '<span><svg class="g" viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="4.4" style="fill:none;stroke:var(--rule-2);stroke-width:1.4;stroke-dasharray:2"/></svg>jaotamata</span>';
+    byId('legend').innerHTML = lg;
+  }
+  function kpi(label, value, sub) { return '<div class="kpi"><span class="eyebrow">' + label + '</span><b>' + value + '</b>' + (sub ? '<small>' + sub + '</small>' : '') + '</div>'; }
+  function renderSummary() {
+    renderHemi();
+    var nP = 0, nD = 0, nC = 0;
+    res.elected.forEach(function (c) { if (c.elected === 'P') nP++; else if (c.elected === 'D') nD++; else nC++; });
+    var nQ = res.parties.filter(function (p) { return p.qualifies; }).length;
+    byId('kpis').innerHTML =
+      kpi('Kehtivaid hääli', nf0.format(res.N)) +
+      kpi('5% künnis', nf0.format(Math.ceil(res.N / 20)) + ' häält', 'künnise ületas ' + plural(nQ, 'erakond', 'erakonda')) +
+      kpi('Ringkondades', plural(nP + nD, 'mandaat', 'mandaati'), nP + ' isiku- ja ' + nD + ' ringkonnamandaati') +
+      kpi('Kompensatsioon', plural(nC, 'mandaat', 'mandaati'), 'modifitseeritud d’Hondt, jagajad k^0,9');
+    var w = [];
+    if (res.N === 0) w.push('Hääli ei ole. Sisesta kandidaatidele hääli vahekaardil „Hääled ringkonniti“.');
+    if (res.S !== 101) w.push('Ringkondade mandaate on kokku ' + res.S + '; seaduse järgi on Riigikogus 101 liiget.');
+    if (res.unallocated > 0) w.push(plural(res.unallocated, 'mandaat jäi', 'mandaati jäi') + ' jaotamata: ' + (nQ ? 'künnise ületanud erakondadel ei jätkunud kandidaate.' : 'ükski erakond ei ületanud 5% künnist.'));
+    res.districts.forEach(function (d) { if (d.T === 0 && res.N > 0) w.push('Ringkonnas nr ' + d.nr + ' ei ole hääli — selle mandaadid lähevad kompensatsiooniks.'); });
+    byId('warns').innerHTML = w.map(function (x) { return '<div class="warn">' + esc(x) + '</div>'; }).join('');
+    renderPartyTable();
+    updateBadge();
+  }
+  function renderPartyTable() {
+    var showOff = isBase;
+    var rows = res.parties.slice().sort(function (a, b) { return b.votes - a.votes; });
+    var h = '<thead><tr><th>Erakond</th><th class="num">Hääli</th><th class="num">%</th><th class="num" title="Isikumandaadid">Isiku</th><th class="num" title="Ringkonnamandaadid">Ringk.</th><th class="num" title="Kompensatsioonimandaadid">Komp.</th><th class="num">Kokku</th>' + (showOff ? '<th class="num" title="2023 ametlik tulemus">2023</th>' : '') + '</tr></thead><tbody>';
+    var thrDone = false;
+    rows.forEach(function (r) {
+      var p = partyOf(r.id);
+      if (!r.qualifies && !thrDone) {
+        thrDone = true;
+        h += '<tr class="thr"><td colspan="' + (showOff ? 8 : 7) + '" class="small muted">5% künnis: ' + nf0.format(Math.ceil(res.N / 20)) + ' häält</td></tr>';
+      }
+      var off = OFF_SEATS.get(r.id) || 0, dlt = r.total - off;
+      h += '<tr class="' + (r.qualifies ? '' : 'below') + '" style="--pc:' + p.color + '"><td><div class="pname"><span class="sw"></span><div><div class="pfull">' + esc(p.name) + '</div>' + (r.qualifies ? '' : '<span class="pshort">alla 5% künnise</span>') + '</div></div></td>' +
+        '<td class="num">' + nf0.format(r.votes) + '</td><td class="num">' + nf1.format(r.share * 100) + '</td>' +
+        '<td class="num">' + (r.personal || '·') + '</td><td class="num">' + (r.district || '·') + '</td><td class="num">' + (r.comp || '·') + '</td>' +
+        '<td class="num"><span class="total">' + r.total + '</span>' + (showOff && dlt ? '<span class="delta ' + (dlt > 0 ? 'up' : 'down') + '">' + (dlt > 0 ? '+' : '−') + Math.abs(dlt) + '</span>' : '') + '</td>' +
+        (showOff ? '<td class="num muted">' + off + '</td>' : '') + '</tr>';
+    });
+    var hasInd = model.candidates.some(function (c) { return !c.party; });
+    if (hasInd) {
+      var offI = OFF_SEATS.get(0) || 0;
+      h += '<tr style="--pc:' + IND.color + '"><td><div class="pname"><span class="sw"></span><div class="pfull">Üksikkandidaadid</div></div></td><td class="num">' + nf0.format(res.indVotes) + '</td><td class="num">' + nf1.format(res.N ? res.indVotes / res.N * 100 : 0) + '</td><td class="num">' + (res.indElected || '·') + '</td><td class="num">·</td><td class="num">·</td><td class="num"><span class="total">' + res.indElected + '</span></td>' + (showOff ? '<td class="num muted">' + offI + '</td>' : '') + '</tr>';
+    }
+    h += '</tbody><tfoot><tr><td>Kokku</td><td class="num">' + nf0.format(res.N) + '</td><td class="num">100,0</td><td class="num">' + sumBy('personal') + '</td><td class="num">' + sumBy('district') + '</td><td class="num">' + sumBy('comp') + '</td><td class="num">' + res.elected.length + '</td>' + (showOff ? '<td class="num muted">101</td>' : '') + '</tr></tfoot>';
+    byId('ptable').innerHTML = h;
+    function sumBy(k) { return res.parties.reduce(function (a, p) { return a + p[k]; }, 0) + (k === 'personal' ? res.indElected : 0); }
+  }
+  function updateBadge() {
+    var b = byId('dataBadge'), n = changedCount();
+    if (!isBase) { b.textContent = 'Imporditud andmed'; b.className = 'badge is-mod'; }
+    else if (n === 0) { b.textContent = '2023 ametlikud hääled'; b.className = 'badge'; }
+    else { b.textContent = 'Muudetud: ' + plural(n, 'kirje', 'kirjet'); b.className = 'badge is-mod'; }
+  }
+
+  // ---------- vahekaardid
+  function setTab(t) {
+    if (TABS.indexOf(t) < 0) t = 'haaled';
+    state.tab = t;
+    TABS.forEach(function (x) {
+      var tab = byId('tab-' + x), p = byId('panel-' + x);
+      tab.setAttribute('aria-selected', String(x === t));
+      tab.tabIndex = x === t ? 0 : -1;
+      p.hidden = x !== t;
+    });
+    renderActive(true);
+    try { history.replaceState(null, '', '#' + t); } catch (e) { /* ei toetata */ }
+    saveSoon();
+  }
+  var votesKey = '';
+  function renderActive(full) {
+    switch (state.tab) {
+      case 'haaled': if (full || votesKey !== state.district + '|' + state.struct) renderVotes(); else patchVotes(); break;
+      case 'liikmed': renderMembers(); break;
+      case 'jaotus': renderAlloc(); break;
+      case 'asendusliikmed': renderSubs(); break;
+      case 'kontroll': renderCheck(); break;
+    }
+  }
+
+  // ---------- hääled ringkonniti
+  function renderVotes() {
+    var el = byId('panel-haaled');
+    var d = distMap.get(state.district);
+    var h = '<p class="panel-intro">Vali ringkond ja muuda kandidaatide hääli — tulemus arvutatakse kohe ümber. Kandidaadid on registreerimisnumbrite järjekorras nagu ringkonna koondnimekirjas. Nimel klõpsates näed kandidaadi nimekirjakohti ja asendusliikmeid.</p>';
+    h += '<div class="dpicker" role="group" aria-label="Valimisringkond">' + model.districts.map(function (x) {
+      var on = x.nr === d.nr;
+      return '<button type="button" class="dpick' + (on ? ' is-on' : '') + '" data-district="' + x.nr + '" aria-pressed="' + on + '"><span class="dp-top"><span class="dp-nr">' + x.nr + '</span><span class="dp-m">' + plural(x.mandates, 'mandaat', 'mandaati') + '</span></span><span class="dp-name">' + esc(x.short || x.name) + '</span><span class="dp-bar" id="dpbar-' + x.nr + '"></span></button>';
+    }).join('') + '</div>';
+    h += '<div class="dhead"><div class="dhead-t"><p class="eyebrow">Valimisringkond nr ' + d.nr + '</p><h2>' + esc(d.name) + '</h2></div><dl class="dstats" id="dstats"></dl></div>';
+    var opts = model.parties.slice().sort(function (a, b) { return a.lot - b.lot; });
+    if (state.swingParty == null || !partyMap.has(state.swingParty)) state.swingParty = opts.length ? opts[0].id : null;
+    h += '<div class="tools"><div class="grow"><label class="vh" for="q">Otsi kandidaati</label><input class="inp" id="q" type="search" placeholder="Otsi kandidaati nime või numbri järgi (kõik ringkonnad)" autocomplete="off"><div class="qres" id="qres" hidden></div></div>' +
+      (opts.length ? '<label for="swingParty">Erakonna hääled kõigis ringkondades</label><select class="inp" id="swingParty">' + opts.map(function (p) { return '<option value="' + p.id + '"' + (p.id === state.swingParty ? ' selected' : '') + '>' + esc(p.short || p.name) + '</option>'; }).join('') + '</select><button type="button" class="btn btn-sm" data-swing="0.9">−10%</button><button type="button" class="btn btn-sm" data-swing="1.1">+10%</button>' : '') +
+      '<button type="button" class="btn btn-sm btn-ghost" id="zeroDistrict">Nulli selle ringkonna hääled</button></div>';
+    var groups = new Map();
+    model.candidates.forEach(function (c) { if (c.district !== d.nr) return; var k = c.party || 0; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(c); });
+    var keys = Array.from(groups.keys()).sort(function (a, b) { return partyOf(a).lot - partyOf(b).lot; });
+    h += '<div class="pblocks">' + keys.map(function (pid) {
+      var p = partyOf(pid);
+      var list = groups.get(pid).slice().sort(function (a, b) { return a.nr - b.nr; });
+      return '<section class="pblock" style="--pc:' + p.color + '"><header class="pblock-head"><div class="pname"><span class="sw"></span><h3>' + esc(p.name) + '</h3></div>' +
+        (pid ? '<div class="pscale" role="group" aria-label="Muuda ' + esc(p.short) + ' hääli selles ringkonnas"><button type="button" class="btn btn-sm" data-scale="0.9" data-pid="' + pid + '">−10%</button><button type="button" class="btn btn-sm" data-scale="1.1" data-pid="' + pid + '">+10%</button></div>' : '<span></span>') +
+        '<div class="pcalc" id="pc-' + pid + '"></div></header><ol class="clist">' + list.map(rowHTML).join('') + '</ol></section>';
+    }).join('') + '</div>';
+    el.innerHTML = h;
+    votesKey = state.district + '|' + state.struct;
+    patchVotes();
+  }
+  function rowHTML(c) {
+    return '<li class="crow" id="row-' + c.nr + '" style="--pc:' + partyOf(c.party).color + '">' +
+      '<span class="numbox" id="nb-' + c.nr + '" title="Registreerimisnumber">' + c.nr + '</span>' +
+      '<div class="cmain"><button type="button" class="cname" data-open="' + c.nr + '">' + esc(c.name) + '</button>' +
+      '<span class="cmeta">' + (c.party ? 'ringkonnanimekirjas ' + c.distPos + '. · üleriigilises ' + c.natPos + '.' : 'üksikkandidaat') + '<span id="rk-' + c.nr + '"></span></span></div>' +
+      '<label class="cvotes" for="v-' + c.nr + '"><span class="lbl">Hääli</span><input id="v-' + c.nr + '" data-v="' + c.nr + '" type="number" min="0" step="1" inputmode="numeric" value="' + c.votes + '" aria-label="' + esc(c.name) + ', hääli"></label>' +
+      '<div class="cq" id="cq-' + c.nr + '"></div><div class="cst" id="st-' + c.nr + '"></div></li>';
+  }
+  function stat(label, value, sub) { return '<div><dt>' + label + '</dt><dd>' + value + (sub ? '<small>' + sub + '</small>' : '') + '</dd></div>'; }
+  function pcalcHTML(e) {
+    var s = nf0.format(e.votes) + ' häält = ' + nf2.format(e.quotas) + ' lihtkvooti';
+    if (!e.qualifies) return s + ' · erakond jäi üleriigiliselt alla 5% künnise' + (e.personal ? ' — kehtib ainult isikumandaat' : ', ringkonnamandaate ei saa');
+    s += ' → <b>' + plural(e.won, 'mandaat', 'mandaati') + '</b>';
+    if (e.bonus) s += ' <span class="tag ok-tag">jääk ≥ 75% lihtkvoodist, +1</span>';
+    if (e.personal) s += ' · neist ' + plural(e.personal, 'isikumandaat', 'isikumandaati');
+    if (e.filled < e.won) s += ' · <span class="tag warn-tag">' + (e.won - e.filled) + ' jäi täitmata</span> kandidaatidel alla 10% lihtkvoodist → kompensatsiooniks';
+    return s;
+  }
+  function pill(t, on, cls, title) { return '<span class="pill' + (on ? ' on' : '') + (cls ? ' ' + cls : '') + '" title="' + title + '">' + t + '</span>'; }
+  function statusHTML(c) {
+    if (c.out) return '<span class="chip chip-out">Välja langenud (§ 62 lg 9)</span>';
+    if (c.elected) {
+      var s = '<span class="chip chip-el">' + glyph(c.elected, partyOf(c.party).color) + TYPE[c.elected] + '</span>';
+      if (c.elected === 'C') s += '<span class="sub">võrdlusarv ' + nf1.format(c.compFigure) + (c.compBelow5 ? ', § 62 lg 7' : '') + '</span>';
+      var seat = byOrig.get(c.nr);
+      if (seat && seat.holder !== c.nr) s += '<span class="sub">lahkunud, asemel ' + esc(seat.holder ? cname(seat.holder) : '—') + '</span>';
+      return s;
+    }
+    if (!c.party) return '<span class="chip chip-none">Ei osutunud valituks</span>';
+    if (!res.qualifies.get(c.party)) return '<span class="chip chip-none">Erakond alla 5% künnise</span>';
+    var parts = [];
+    if (c.distSubRank) parts.push('ringkonnas ' + c.distSubRank + '.');
+    if (c.natSubRank) parts.push('üleriigiliselt ' + c.natSubRank + '.');
+    var extra = seatedNow.has(c.nr) ? '<span class="sub">Riigikogus asendusliikmena</span>' : (sim.gone.has(c.nr) ? '<span class="sub">loobunud</span>' : '');
+    return '<span class="chip chip-sub">Asendusliige</span><span class="sub">' + parts.join(' · ') + '</span>' + extra;
+  }
+  function patchVotes() {
+    var d = distMap.get(state.district);
+    var dr = res.districts.filter(function (x) { return x.nr === d.nr; })[0];
+    var T = dr ? dr.T : 0, M = d.mandates, Q = M ? T / M : 0;
+    var dst = byId('dstats');
+    if (!dst) return;
+    dst.innerHTML = stat('Mandaate', M) + stat('Kehtivaid hääli', nf0.format(T)) +
+      stat('Lihtkvoot', T && M ? nf2.format(Q) : '–', 'isikumandaat') +
+      stat('10% lihtkvoodist', T && M ? nf2.format(Q / 10) : '–', 'ringkonnamandaat, ringkonna asendusliige') +
+      stat('5% lihtkvoodist', T && M ? nf2.format(Q / 20) : '–', 'kompensatsioonimandaat');
+    var rankOf = new Map();
+    if (dr) {
+      dr.parties.forEach(function (e) {
+        var pc = byId('pc-' + e.party);
+        if (pc) pc.innerHTML = pcalcHTML(e);
+        e.ranked.forEach(function (nr, i) { rankOf.set(nr, i + 1); });
+      });
+    }
+    var pc0 = byId('pc-0');
+    if (pc0) pc0.textContent = 'Üksikkandidaat saab mandaadi ainult siis, kui tema häälte arv on vähemalt lihtkvoot (' + (T && M ? nf2.format(Q) : '–') + ').';
+    model.candidates.forEach(function (m) {
+      if (m.district !== d.nr) return;
+      var c = res.byNr.get(m.nr);
+      var nb = byId('nb-' + m.nr); if (!nb) return;
+      nb.className = 'numbox' + (c.elected ? ' is-el' : '');
+      byId('cq-' + m.nr).innerHTML = '<span class="qv">' + pctQ(c) + '</span><span class="meter">' +
+        pill('5', reach(c, 20), '', 'vähemalt 5% lihtkvoodist: kompensatsioonimandaadi eelisjärjekord') +
+        pill('10', reach(c, 10), '', 'vähemalt 10% lihtkvoodist: ringkonnamandaat ja ringkonna asendusliige') +
+        pill('Q', reach(c, 1), 'q', 'vähemalt lihtkvoot: isikumandaat') + '</span>';
+      byId('st-' + m.nr).innerHTML = statusHTML(c);
+      var rk = rankOf.get(m.nr);
+      byId('rk-' + m.nr).textContent = rk ? ' · häälte arvult ' + rk + '.' : '';
+    });
+    patchPicker();
+  }
+  function patchPicker() {
+    var counts = new Map();
+    res.cands.forEach(function (c) {
+      if (c.elected !== 'P' && c.elected !== 'D') return;
+      if (!counts.has(c.district)) counts.set(c.district, new Map());
+      var m = counts.get(c.district);
+      m.set(c.party, (m.get(c.party) || 0) + 1);
+    });
+    model.districts.forEach(function (d) {
+      var bar = byId('dpbar-' + d.nr); if (!bar) return;
+      var m = counts.get(d.nr) || new Map(), used = 0, segs = [], tip = [];
+      Array.from(m.entries()).sort(function (a, b) { return b[1] - a[1]; }).forEach(function (e) {
+        used += e[1];
+        segs.push('<i style="flex:' + e[1] + ';background:' + partyOf(e[0]).color + '"></i>');
+        tip.push(partyOf(e[0]).short + ' ' + e[1]);
+      });
+      var rest = Math.max(0, d.mandates - used);
+      if (rest) { segs.push('<i class="comp" style="flex:' + rest + '"></i>'); tip.push(rest + ' kompensatsiooniks'); }
+      bar.innerHTML = segs.join('');
+      bar.title = 'Ringkonnas jaotatud: ' + tip.join(', ');
+    });
+  }
+  var calcRaf = 0;
+  function scheduleCalc() {
+    if (calcRaf) return;
+    calcRaf = setTimeout(function () {
+      calcRaf = 0;
+      recompute();
+      renderSummary();
+      if (state.tab === 'haaled') patchVotes(); else renderActive(true);
+      refreshDialog();
+      saveSoon();
+    }, 30);
+  }
+  function refresh() {
+    recompute();
+    renderSummary();
+    renderActive(true);
+    refreshDialog();
+    saveSoon();
+  }
+  function search(q) {
+    var box = byId('qres'); if (!box) return;
+    q = norm(q.trim());
+    if (!q) { box.hidden = true; box.innerHTML = ''; return; }
+    var hits = model.candidates.filter(function (c) { return String(c.nr).indexOf(q) === 0 || norm(c.name).indexOf(q) >= 0; }).slice(0, 30);
+    box.innerHTML = hits.length ? hits.map(function (c) {
+      return '<button type="button" data-jump="' + c.nr + '"><span class="mono">' + c.nr + '</span><span>' + esc(c.name) + '</span><span class="qm">' + esc(partyOf(c.party).short) + ' · ringkond ' + c.district + ' · ' + nf0.format(c.votes) + ' häält</span></button>';
+    }).join('') : '<p class="small muted" style="padding:8px">Ei leitud.</p>';
+    box.hidden = false;
+  }
+  function jumpTo(nr) {
+    var c = candMap.get(nr); if (!c) return;
+    closeDialogs();
+    state.district = c.district;
+    if (state.tab !== 'haaled') setTab('haaled'); else renderVotes();
+    var row = byId('row-' + nr), inp = byId('v-' + nr);
+    if (row) {
+      row.scrollIntoView({ block: 'center' });
+      row.classList.remove('is-hl'); void row.offsetWidth; row.classList.add('is-hl');
+    }
+    if (inp) inp.focus({ preventScroll: true });
+  }
+
+  // ---------- valitud ja asendajad
+  function chainEntries(nr) {
+    var ch = E.substituteChain(res, nr);
+    return ch.district.map(function (x, i) { return { nr: x, k: 'R' + (i + 1) }; })
+      .concat(ch.national.map(function (x) { return { nr: x, k: 'Ü' + res.byNr.get(x).natSubRank }; }));
+  }
+  function isAvail(nr) { return !seatedNow.has(nr) && !sim.gone.has(nr); }
+  function viaText(h) {
+    if (!h) return '';
+    if (h.via === 'ringkond') return 'ringkonna asendusliige ' + h.rank + '.';
+    if (h.via === 'üleriigiline') return 'üleriigilise nimekirja asendusliige ' + h.rank + '.';
+    if (h.via === 'lisamandaat') return 'lisamandaat (§ 76), ' + partyOf(h.figure.party).short + ' võrdlusarv ' + nf1.format(h.figure.value);
+    return '';
+  }
+  function renderMembers() {
+    var el = byId('panel-liikmed');
+    var h = '<p class="panel-intro">Iga valitud liikme juures on tema asendusliikmete järjekord Riigikogu liikme staatuse seaduse § 12 järgi. <b>R</b> tähistab sama erakonna sama ringkonna asendusliikmeid (RKVS § 75 lg 3), <b>Ü</b> erakonna üleriigilist asendusliikmete nimekirja (§ 75 lg 4). Sama erakonna samas ringkonnas valitud liikmetel on ühine järjekord, seega tegelik asendaja sõltub lahkumiste järjekorrast. Vajuta „Lahkub“, et simuleerida volituste peatumist või lõppemist, näiteks ministriks nimetamist.</p>';
+    var log = sim.log;
+    h += '<div class="simbar"><div><b>' + (log.length ? plural(log.length, 'muudatus', 'muudatust') + ' koosseisus' : 'Koosseis vastab valimistulemusele') + '</b>' +
+      (log.length ? '<ol class="simlog">' + log.map(function (l) {
+        if (l.type === 'loobus') return '<li>' + esc(cname(l.nr)) + ' loobus asendusliikme kohast</li>';
+        return '<li>' + esc(cname(l.nr)) + ' lahkus → ' + (l.by ? '<b>' + esc(cname(l.by.nr)) + '</b> (' + esc(viaText(l.by)) + ')' : 'kohta ei saanud täita') + '</li>';
+      }).join('') + '</ol>' : '<p class="small muted">Lahkumisi pole märgitud.</p>') + '</div>' +
+      (log.length ? '<button type="button" class="btn" id="simClear">Tühista kõik muudatused</button>' : '') + '</div>';
+    if (!res.elected.length) { el.innerHTML = h + '<p class="muted">Keegi ei osutunud valituks.</p>'; return; }
+    var order = partiesByVotes().filter(function (p) { return p.total > 0; }).map(function (p) { return p.id; });
+    if (res.indElected) order.push(0);
+    var typeRank = { P: 0, D: 1, C: 2 };
+    h += '<div class="mgroups">' + order.map(function (pid) {
+      var p = partyOf(pid);
+      var list = res.elected.filter(function (c) { return c.party === pid; }).sort(function (a, b) { return (typeRank[a.elected] - typeRank[b.elected]) || (a.orderNr - b.orderNr); });
+      var cnt = { P: 0, D: 0, C: 0 }; list.forEach(function (c) { cnt[c.elected]++; });
+      return '<section class="mgroup" style="--pc:' + p.color + '"><header><div class="pname"><span class="sw"></span><h3>' + esc(p.name) + '</h3></div><span class="small muted">' + plural(list.length, 'mandaat', 'mandaati') + ' · ' + cnt.P + ' isiku-, ' + cnt.D + ' ringkonna-, ' + cnt.C + ' kompensatsioonimandaati</span></header><ol class="mlist">' + list.map(memberRow).join('') + '</ol></section>';
+    }).join('') + '</div>';
+    el.innerHTML = h;
+  }
+  function memberRow(c) {
+    var p = partyOf(c.party), seat = byOrig.get(c.nr);
+    var replaced = seat && seat.holder !== c.nr;
+    var info = 'ringkond ' + c.district + ' · ' + nf0.format(c.votes) + ' häält · ' + pctQ(c) + ' lihtkvoodist';
+    if (c.elected === 'C') info += ' · üleriigilises nimekirjas ' + c.natPos + '. · võrdlusarv ' + nf1.format(c.compFigure);
+    var entries = chainEntries(c.nr), chainHTML;
+    if (!entries.length) chainHTML = '<span class="lab">Asendaja</span><span>lisamandaadi alusel (§ 76)' + (c.party && !res.qualifies.get(c.party) ? ' — erakond alla 5%, asendusliikmeid ei registreerita' : (!c.party ? ' — üksikkandidaadil asendusliikmeid ei ole' : ' — nimekirjas asendusliikmeid pole')) + '</span>';
+    else {
+      var next = -1;
+      for (var i = 0; i < entries.length; i++) if (isAvail(entries[i].nr)) { next = i; break; }
+      var upto = Math.min(entries.length, Math.max(3, next + 2));
+      chainHTML = '<span class="lab">Asendusliikmed</span>' + entries.slice(0, upto).map(function (e, i) {
+        var cls = i === next ? ' next' : (isAvail(e.nr) ? '' : ' used');
+        return '<button type="button" class="sb' + cls + '" data-open="' + e.nr + '" title="' + (i === next ? 'Järgmine vaba asendusliige' : (isAvail(e.nr) ? '' : 'Juba Riigikogus või loobunud')) + '"><span class="k">' + e.k + '</span><b>' + esc(cname(e.nr)) + '</b></button>';
+      }).join('') + (entries.length > upto ? '<button type="button" class="link small" data-open="' + c.nr + '">kõik ' + entries.length + '</button>' : '');
+    }
+    var holderHTML = '';
+    if (replaced) {
+      var last = seat.history[seat.history.length - 1];
+      holderHTML = seat.holder ? '<div class="holder"><span>Asemel <button type="button" class="cname" data-open="' + seat.holder + '">' + esc(cname(seat.holder)) + '</button></span><span class="small muted">' + esc(viaText(last)) + '</span></div>'
+        : '<div class="holder vacant">Kohta ei saanud täita — asendusliikmeid ega lisamandaate ei ole</div>';
+    }
+    var act = replaced
+      ? (seat.holder ? '<button type="button" class="btn btn-sm" data-leave="' + seat.holder + '">Asendaja lahkub</button>' : '') + '<button type="button" class="btn btn-sm btn-ghost" data-restore="' + c.nr + '">Taasta</button>'
+      : '<button type="button" class="btn btn-sm" data-leave="' + c.nr + '">Lahkub</button>';
+    return '<li class="mrow' + (replaced ? ' is-left' : '') + '" style="--pc:' + p.color + '"><span class="numbox is-el">' + c.nr + '</span><div class="mmain"><div class="mline"><button type="button" class="cname" data-open="' + c.nr + '">' + esc(c.name) + '</button><span class="chip chip-el">' + glyph(c.elected, p.color) + TYPE[c.elected] + '</span></div><span class="cmeta">' + info + '</span><div class="chain">' + chainHTML + '</div>' + holderHTML + '</div><div class="mact">' + act + '</div></li>';
+  }
+  function restoreSeat(orig) {
+    var seat = byOrig.get(orig); if (!seat) return;
+    var holders = new Set(seat.history.map(function (x) { return x.nr; }).filter(Boolean));
+    for (var i = state.leaves.length - 1; i >= 0; i--) {
+      if (holders.has(state.leaves[i])) { state.leaves.splice(i, 1); break; }
+    }
+  }
+
+  // ---------- mandaatide jaotus
+  function seats7(list, S) {
+    var V = list.reduce(function (a, d) { return a + d.v; }, 0);
+    if (!V) return null;
+    var rows = list.map(function (d) { var whole = Math.floor(d.v * S / V); return { nr: d.nr, whole: whole, rem: d.v * S - whole * V, seats: whole }; });
+    var left = S - rows.reduce(function (a, r) { return a + r.whole; }, 0);
+    rows.slice().sort(function (a, b) { return (b.rem - a.rem) || (a.nr - b.nr); }).slice(0, left).forEach(function (r) { r.seats++; });
+    return { V: V, rows: new Map(rows.map(function (r) { return [r.nr, r]; })) };
+  }
+  function renderAlloc() {
+    var el = byId('panel-jaotus');
+    var h = '<p class="panel-intro">Siin on kogu arvutuskäik samm-sammult. Ringkondade mandaatide arvu ja valijate arvu saab muuta; ülejäänu järgneb häältest.</p><div class="steps">';
+    // 1
+    var s7 = seats7(model.districts.map(function (d) { return { nr: d.nr, v: d.voters || 0 }; }), 101);
+    var diff7 = s7 && model.districts.some(function (d) { return s7.rows.get(d.nr).seats !== d.mandates; });
+    h += '<section class="step"><div class="step-h"><h2>1. Ringkonnad ja lihtkvoodid</h2><span class="law">RKVS § 7, § 62 lg 1–2</span></div>' +
+      '<p class="note">Lihtkvoot = ringkonna kehtivad hääled ÷ mandaadid. Isikumandaadi saab iga kandidaat, kellel on vähemalt lihtkvoot. Veerg „§ 7 järgi“ näitab, kuidas 101 mandaati jaotuksid sisestatud valijate arvu põhjal suurimate jääkide meetodil. 2023. aasta ametlik jaotus põhines rahvastikuregistri andmetel 1.11.2022 seisuga; siin on eeltäidetud valimispäeva valijate nimekirjade arv, mistõttu tulemus võib ametlikust erineda.</p>' +
+      '<div class="card scroll-x"><table class="tbl"><thead><tr><th>Nr</th><th>Ringkond</th><th class="num">Valijaid</th><th class="num">§ 7 järgi</th><th class="num">Mandaate</th><th class="num">Kehtivaid hääli</th><th class="num">Lihtkvoot</th><th class="num">Isiku</th><th class="num">Ringk.</th><th class="num">Kompensatsiooniks</th></tr></thead><tbody>';
+    var tot = { v: 0, m: 0, T: 0, P: 0, D: 0, r: 0 };
+    res.districts.forEach(function (dr) {
+      var d = distMap.get(dr.nr), P = 0, D = 0;
+      res.cands.forEach(function (c) { if (c.district === dr.nr) { if (c.elected === 'P') P++; else if (c.elected === 'D') D++; } });
+      var r7 = s7 ? s7.rows.get(dr.nr).seats : '–';
+      tot.v += d.voters || 0; tot.m += d.mandates; tot.T += dr.T; tot.P += P; tot.D += D; tot.r += d.mandates - P - D;
+      h += '<tr><td>' + dr.nr + '</td><td>' + esc(d.short || d.name) + '</td>' +
+        '<td class="num"><label class="vh" for="vv-' + dr.nr + '">Ringkonna ' + dr.nr + ' valijate arv</label><input class="inp" type="number" min="0" step="1" id="vv-' + dr.nr + '" data-vv="' + dr.nr + '" value="' + (d.voters || 0) + '"></td>' +
+        '<td class="num' + (s7 && r7 !== d.mandates ? '' : ' muted') + '">' + r7 + '</td>' +
+        '<td class="num"><label class="vh" for="m-' + dr.nr + '">Ringkonna ' + dr.nr + ' mandaadid</label><input class="inp" type="number" min="0" step="1" id="m-' + dr.nr + '" data-m="' + dr.nr + '" value="' + d.mandates + '"></td>' +
+        '<td class="num">' + nf0.format(dr.T) + '</td><td class="num">' + (dr.M && dr.T ? nf2.format(dr.T / dr.M) : '–') + '</td><td class="num">' + P + '</td><td class="num">' + D + '</td><td class="num">' + (d.mandates - P - D) + '</td></tr>';
+    });
+    h += '</tbody><tfoot><tr><td></td><td>Kokku</td><td class="num">' + nf0.format(tot.v) + '</td><td class="num">' + (s7 ? 101 : '–') + '</td><td class="num">' + tot.m + '</td><td class="num">' + nf0.format(tot.T) + '</td><td></td><td class="num">' + tot.P + '</td><td class="num">' + tot.D + '</td><td class="num">' + tot.r + '</td></tr></tfoot></table></div>' +
+      '<div><button type="button" class="btn"' + (diff7 ? '' : ' disabled') + ' data-apply7>Rakenda § 7 jaotus</button> ' + (s7 ? '<span class="small muted">Valijaid ühe mandaadi kohta: ' + nf2.format(s7.V / 101) + '</span>' : '') + '</div></section>';
+
+    // 2
+    var qp = res.parties.filter(function (p) { return p.qualifies; }).sort(function (a, b) { return b.votes - a.votes; });
+    h += '<section class="step"><div class="step-h"><h2>2. Ringkonnamandaadid</h2><span class="law">RKVS § 62 lg 3</span></div>' +
+      '<p class="note">Lahtris on erakonna mandaatide arv ringkonnas (koos isikumandaatidega) ja selle all häälte arv lihtkvootides. Täisosa annab mandaadid; jääk vähemalt 0,75 annab ühe juurde (märk +). Kui kandidaate, kellel on vähemalt 10% lihtkvoodist, ei jätku, jääb mandaat täitmata ja läheb kompensatsiooniks.</p>';
+    if (!qp.length) h += '<p class="muted">Ükski erakond ei ületanud 5% künnist.</p>';
+    else {
+      h += '<div class="card scroll-x"><table class="tbl mx"><thead><tr><th>Ringkond</th>' + qp.map(function (p) { return '<th style="--pc:' + partyOf(p.id).color + '"><span class="pname" style="justify-content:center"><span class="sw"></span>' + esc(partyOf(p.id).short) + '</span></th>'; }).join('') + '<th>Muud isikumandaadid</th></tr></thead><tbody>';
+      res.districts.forEach(function (dr) {
+        h += '<tr><td><b>' + dr.nr + '</b> <span class="small muted">' + esc(dname(dr.nr)) + '</span></td>';
+        qp.forEach(function (p) {
+          var e = dr.parties.filter(function (x) { return x.party === p.id; })[0];
+          if (!e) { h += '<td class="muted">–</td>'; return; }
+          h += '<td><span class="cell' + (e.won ? '' : ' zero') + '"><b>' + e.filled + (e.bonus ? '<sup>+</sup>' : '') + '</b><small>' + nf2.format(e.quotas) + '</small>' + (e.filled < e.won ? '<span class="lost">−' + (e.won - e.filled) + ' täitmata</span>' : '') + '</span></td>';
+        });
+        var other = res.cands.filter(function (c) { return c.district === dr.nr && c.elected === 'P' && !(c.party && res.qualifies.get(c.party)); });
+        h += '<td>' + (other.length ? other.map(function (c) { return esc(c.name); }).join(', ') : '<span class="muted">–</span>') + '</td></tr>';
+      });
+      h += '</tbody><tfoot><tr><td>Kokku</td>' + qp.map(function (p) { return '<td class="num" style="text-align:center">' + (p.personal + p.district) + '</td>'; }).join('') + '<td></td></tr></tfoot></table></div>';
+    }
+    h += '</section>';
+
+    // 3
+    h += '<section class="step"><div class="step-h"><h2>3. Kompensatsioonimandaadid</h2><span class="law">RKVS § 62 lg 4–8</span></div>' +
+      '<p class="note">Jaotada jäi ' + plural(res.pool, 'mandaat', 'mandaati') + '. Iga künnise ületanud erakonna üleriigiline häälte summa jagatakse arvudega 1, 2<sup>0,9</sup>, 3<sup>0,9</sup> … Esimesed jagajad, mille arv võrdub ringkondades saadud mandaatidega, jäetakse vahele (läbi kriipsutatud). Mandaadid saavad suurimad võrdlusarvud kõigi erakondade peale kokku (värvilised).</p>';
+    if (qp.length) {
+      var used = res.compList.map(function (x) { return x.figure; });
+      var lastUsed = res.compList[res.compList.length - 1];
+      var nextBest = null;
+      res.figures.forEach(function (f) { if (f.state === 'next' && (!nextBest || f.value > nextBest.value)) nextBest = f; });
+      h += '<div class="card scroll-x"><table class="tbl"><thead><tr><th>Erakond</th><th class="num">Hääli</th><th class="num">Ringk.</th><th class="num">Komp.</th><th>Võrdlusarvud (häälte summa ÷ k<sup>0,9</sup>)</th></tr></thead><tbody>' +
+        qp.map(function (p) {
+          var pp = partyOf(p.id), fs = res.figures.filter(function (f) { return f.party === p.id; });
+          var dN = p.personal + p.district;
+          var chips = (dN ? '<span class="fig district" title="k = 1…' + dN + ' kasutati ringkonnamandaatideks">k 1–' + dN + '</span>' : '') +
+            fs.filter(function (f) { return f.state !== 'district'; }).map(function (f) {
+              return '<span class="fig ' + f.state + '"' + (f.state === 'comp' ? ' style="color:' + textOn(pp.color) + '"' : '') + ' title="k = ' + f.k + ', jagaja ' + nf4.format(f.divisor) + '">' + nf1.format(f.value) + '</span>';
+            }).join('');
+          return '<tr style="--pc:' + pp.color + '"><td><div class="pname"><span class="sw"></span>' + esc(pp.short) + '</div></td><td class="num">' + nf0.format(p.votes) + '</td><td class="num">' + dN + '</td><td class="num"><b>' + p.comp + '</b></td><td><div class="figs">' + chips + '</div></td></tr>';
+        }).join('') + '</tbody></table></div>';
+      h += '<div class="cut">' + (lastUsed ? '<span>Viimane jaotatud võrdlusarv: <b class="tnum">' + nf4.format(lastUsed.figure) + '</b> (' + esc(partyOf(lastUsed.party).short) + ')</span>' : '') + (nextBest ? '<span>Suurim jaotamata võrdlusarv: <b class="tnum">' + nf4.format(nextBest.value) + '</b> (' + esc(partyOf(nextBest.party).short) + ')</span>' : '') + '</div>';
+      // saajad
+      h += '<h3>Kompensatsioonimandaatide saajad</h3><p class="note">Erakonna sees saavad mandaadi üleriigilises nimekirjas eespool olevad valimata kandidaadid, kellele anti vähemalt 5% oma ringkonna lihtkvoodist; kui neid ei jätku, suurima lihtkvoodi-protsendiga kandidaadid (§ 62 lg 7).</p>' +
+        '<div class="card scroll-x"><table class="tbl"><thead><tr><th class="num">Jrk</th><th class="num">Võrdlusarv</th><th>Erakond</th><th>Kandidaat</th><th class="num">Üleriig. koht</th><th class="num">Ringkond</th><th class="num">Hääli</th><th class="num">% lihtkvoodist</th></tr></thead><tbody>' +
+        res.compList.map(function (x, i) {
+          var c = res.byNr.get(x.nr), pp = partyOf(x.party);
+          return '<tr style="--pc:' + pp.color + '"><td class="num">' + (i + 1) + '</td><td class="num">' + nf4.format(x.figure) + '</td><td><div class="pname"><span class="sw"></span>' + esc(pp.short) + '</div></td><td><button type="button" class="cname" data-open="' + c.nr + '">' + esc(c.name) + '</button>' + (c.compBelow5 ? ' <span class="tag warn-tag">alla 5%, § 62 lg 7</span>' : '') + '</td><td class="num">' + c.natPos + '</td><td class="num">' + c.district + '</td><td class="num">' + nf0.format(c.votes) + '</td><td class="num">' + pctQ(c) + '</td></tr>';
+        }).join('') + '</tbody></table></div>';
+    }
+    h += '</section>';
+
+    // 4 lisamandaadid
+    h += '<section class="step"><div class="step-h"><h2>4. Lisamandaatide võrdlusarvude tabel</h2><span class="law">RKVS § 76, RKLS § 12 lg 4</span></div>' +
+      '<p class="note">Tabel algab esimesest võrdlusarvust, mis kompensatsioonimandaatide jaotamisel jäi kasutamata. Seda kasutatakse siis, kui üksikkandidaadina või alla künnise erakonnast valitud liige lahkub või kui erakonna nimekirjas asendusliikmeid enam ei ole. Mandaadi saab selle erakonna järgmine üleriigiline asendusliige.</p>';
+    if (res.lisa.length) {
+      h += '<div class="card scroll-x"><table class="tbl"><thead><tr><th class="num">Jrk</th><th>Erakond</th><th class="num">k</th><th class="num">Võrdlusarv</th><th>Asendusliige</th></tr></thead><tbody>' +
+        res.lisa.slice(0, 15).map(function (x) {
+          var pp = partyOf(x.party);
+          return '<tr style="--pc:' + pp.color + '"><td class="num">' + x.rank + '</td><td><div class="pname"><span class="sw"></span>' + esc(pp.short) + '</div></td><td class="num">' + x.k + '</td><td class="num">' + nf4.format(x.value) + '</td><td><button type="button" class="cname" data-open="' + x.sub + '">' + esc(cname(x.sub)) + '</button> <span class="small muted">üleriigiline asendusliige ' + x.j + '.</span></td></tr>';
+        }).join('') + '</tbody></table></div><p class="small muted">Näidatud on 15 esimest ' + nf0.format(res.lisa.length) + '-st.</p>';
+    } else h += '<p class="muted">Lisamandaatide tabel on tühi.</p>';
+    h += '</section></div>';
+    el.innerHTML = h;
+  }
+
+  // ---------- asendusliikmete nimekirjad
+  function renderSubs() {
+    var el = byId('panel-asendusliikmed');
+    var qs = res.parties.filter(function (p) { return p.qualifies; }).sort(function (a, b) { return (b.total - a.total) || (b.votes - a.votes); });
+    var h = '<p class="panel-intro">Asendusliikmed registreeritakse ainult 5% künnise ületanud erakondadele (RKVS § 75). Ringkonna nimekirjad on ringkondades valitud liikmetele, üleriigiline nimekiri kompensatsioonimandaadiga valitud liikmetele ning ringkonna nimekirja ammendumisel ka ringkondades valitutele (RKLS § 12).</p>';
+    if (!qs.length) { el.innerHTML = h + '<p class="muted">Ükski erakond ei ületanud 5% künnist.</p>'; return; }
+    if (!qs.some(function (p) { return p.id === state.subsParty; })) state.subsParty = qs[0].id;
+    var pid = state.subsParty, pp = partyOf(pid);
+    h += '<div class="pchips" role="group" aria-label="Erakond">' + qs.map(function (p) {
+      var x = partyOf(p.id);
+      return '<button type="button" class="pchip" style="--pc:' + x.color + '" data-sp="' + p.id + '" aria-pressed="' + (p.id === pid) + '"><span class="sw"></span>' + esc(x.short) + ' <span class="muted">' + p.total + '</span></button>';
+    }).join('') + '</div>';
+    // ringkonnad
+    var dm = res.subs.district.get(pid);
+    var withEl = res.districts.map(function (dr) {
+      return { dr: dr, el: res.elected.filter(function (c) { return c.party === pid && c.district === dr.nr && c.elected !== 'C'; }) };
+    }).filter(function (x) { return x.el.length; });
+    h += '<section class="step" style="--pc:' + pp.color + '"><div class="step-h"><h2>' + esc(pp.name) + ': ringkondades valitute asendusliikmed</h2><span class="law">RKVS § 75 lg 3</span></div>' +
+      '<p class="note">Valimata jäänud kandidaadid, kellele anti vähemalt 10% ringkonna lihtkvoodist, häälte arvu järjekorras (võrdsuse korral ringkonnanimekirjas eespool olev).</p>';
+    if (!withEl.length) h += '<p class="muted">Erakonnal ei ole ringkondades valitud liikmeid.</p>';
+    else h += '<div class="dsubs">' + withEl.map(function (x) {
+      var l = dm.get(x.dr.nr) || [];
+      return '<div class="dsub"><h3>Ringkond ' + x.dr.nr + ' <span class="small muted">' + esc(dname(x.dr.nr)) + '</span></h3><p class="el">Valitud: ' + x.el.map(function (c) { return esc(c.name) + ' (' + (c.elected === 'P' ? 'isiku' : 'ringk.') + ')'; }).join(', ') + '</p>' +
+        (l.length ? '<ol>' + l.map(function (nr) { var c = res.byNr.get(nr); return '<li><button type="button" class="cname" data-open="' + nr + '">' + esc(c.name) + '</button> <span class="small muted tnum">' + nf0.format(c.votes) + ' · ' + pctQ(c) + '</span></li>'; }).join('') + '</ol>'
+          : '<p class="small muted">Nimekiri on tühi — asendaja tuleb üleriigilisest nimekirjast.</p>') + '</div>';
+    }).join('') + '</div>';
+    h += '</section>';
+    // üleriigiline
+    var nat = res.subs.national.get(pid) || [];
+    var lisaRank = new Map(res.lisa.filter(function (x) { return x.party === pid; }).map(function (x) { return [x.sub, x.rank]; }));
+    h += '<section class="step" style="margin-top:26px"><div class="step-h"><h2>Üleriigiline asendusliikmete nimekiri</h2><span class="law">RKVS § 75 lg 4</span></div>' +
+      '<p class="note">Esmalt kandidaadid, kellele anti vähemalt 5% oma ringkonna lihtkvoodist, erakonna üleriigilise nimekirja järjekorras; seejärel ülejäänud valimata kandidaadid lihtkvoodi-protsendi järgi. Viimane veerg näitab kohta lisamandaatide tabelis (§ 76), mida kasutab ka ametlik väljund.</p>';
+    var aCount = nat.filter(function (nr) { return reach(res.byNr.get(nr), 20); }).length;
+    h += '<div class="card scroll-x"><table class="tbl"><thead><tr><th class="num">Jrk</th><th>Kandidaat</th><th class="num">Üleriig. koht</th><th class="num">Ringkond</th><th class="num">Hääli</th><th class="num">% lihtkvoodist</th><th class="num">§ 76 koht</th></tr></thead><tbody>' +
+      nat.map(function (nr, i) {
+        var c = res.byNr.get(nr);
+        var st = seatedNow.has(nr) ? ' <span class="tag ok-tag">Riigikogus</span>' : (sim.gone.has(nr) ? ' <span class="tag">loobunud</span>' : '');
+        return '<tr class="' + (i >= aCount ? 'grp-b' : '') + (i === aCount && i > 0 ? ' split' : '') + '"><td class="num">' + (i + 1) + '</td><td><button type="button" class="cname" data-open="' + nr + '">' + esc(c.name) + '</button>' + st + '</td><td class="num">' + c.natPos + '</td><td class="num">' + c.district + '</td><td class="num">' + nf0.format(c.votes) + '</td><td class="num">' + pctQ(c) + '</td><td class="num muted">' + (lisaRank.get(nr) || '–') + '</td></tr>';
+      }).join('') + '</tbody></table></div>';
+    if (aCount < nat.length) h += '<p class="small muted">Jooneni ' + aCount + ' kandidaati ≥ 5% lihtkvoodist (nimekirja järjekorras), pärast joont ' + (nat.length - aCount) + ' kandidaati alla 5% (protsendi järgi).</p>';
+    h += '</section>';
+    el.innerHTML = h;
+  }
+
+  // ---------- kontroll
+  var VER = null;
+  function verify() {
+    var r = E.compute(BASE), off = RAW.official;
+    var om = new Map(off.elected.map(function (e) { return [e[0], e]; }));
+    var el = 0, ty = 0, ra = 0, fig = 0, figT = 0, ord = 0;
+    r.elected.forEach(function (c) {
+      var o = om.get(c.nr); if (!o) return;
+      el++;
+      if (o[1] === c.elected) ty++;
+      if ((c.votes * c.M / c.T).toFixed(4) === o[3]) ra++;
+      if (o[2] === c.orderNr) ord++;
+      if (c.elected === 'C') { figT++; if (c.compFigure.toFixed(4) === o[4]) fig++; }
+    });
+    var natT = 0, natOk = 0, lisaOk = 0, dl = 0, dlOk = 0, dn = 0;
+    Object.keys(off.substitutes).forEach(function (pid) {
+      var s = off.substitutes[pid], mine = r.subs.national.get(+pid) || [];
+      s.national.forEach(function (x, i) { natT++; if (mine[i] === x[0]) natOk++; });
+      var lr = new Map(r.lisa.filter(function (x) { return x.party === +pid; }).map(function (x) { return [x.sub, x.rank]; }));
+      s.national.forEach(function (x) { if (lr.get(x[0]) === x[1]) lisaOk++; });
+      var dmap = r.subs.district.get(+pid) || new Map(), keys = new Set(Object.keys(s.districts).map(Number));
+      dmap.forEach(function (l, d) { if (l.length) keys.add(d); });
+      keys.forEach(function (d) { dl++; var a = dmap.get(d) || [], b = s.districts[String(d)] || []; dn += b.length; if (JSON.stringify(a) === JSON.stringify(b)) dlOk++; });
+    });
+    VER = [
+      { t: 'Valituks osutunud kandidaadid', a: el, b: off.elected.length, n: r.elected.length === off.elected.length },
+      { t: 'Mandaadi liik (isiku-, ringkonna-, kompensatsioonimandaat)', a: ty, b: off.elected.length },
+      { t: 'Mandaatide järjekord ametlikus väljundis', a: ord, b: off.elected.length },
+      { t: 'Häälte suhe lihtkvooti (4 komakohta)', a: ra, b: off.elected.length },
+      { t: 'Kompensatsioonimandaatide võrdlusarvud (4 komakohta)', a: fig, b: figT },
+      { t: 'Ringkondade asendusliikmete nimekirjad (' + dn + ' nime)', a: dlOk, b: dl },
+      { t: 'Üleriigilised asendusliikmed õiges järjekorras', a: natOk, b: natT },
+      { t: 'Asendusliikmete kohad lisamandaatide tabelis (§ 76)', a: lisaOk, b: natT }
+    ];
+  }
+  function renderCheck() {
+    var el = byId('panel-kontroll');
+    if (!VER) verify();
+    var allOk = VER.every(function (x) { return x.a === x.b && x.n !== false; });
+    var h = '<p class="panel-intro">Arvutusmootor käivitatakse lehe avamisel 2023. aasta ametlike häältega ja tulemust võrreldakse Vabariigi Valimiskomisjoni avaldatud andmetega (rk2023.valimised.ee: „Mandaatide omandamise viis“ ja „Riigikogu asendusliikmed“, seisuga 20.04.2023). See kontroll ei sõltu sinu muudatustest.</p>';
+    h += '<div class="checks">' + VER.map(function (x) {
+      var ok = x.a === x.b && x.n !== false;
+      return '<div class="check' + (ok ? '' : ' bad') + '"><span class="mark">' + (ok ? '✓' : '!') + '</span><span>' + esc(x.t) + '</span><span class="cnt">' + x.a + ' / ' + x.b + '</span></div>';
+    }).join('') + '</div>';
+    h += '<p class="' + (allOk ? 'okmsg' : 'err') + '" style="margin-top:10px">' + (allOk ? 'Mudel annab 2023. aasta andmetega täpselt ametliku tulemuse.' : 'Mudel erineb ametlikust tulemusest.') + '</p>';
+    // stsenaarium
+    h += '<section class="step" style="margin-top:28px"><div class="step-h"><h2>Sinu stsenaarium võrreldes 2023. aasta tegeliku tulemusega</h2></div>';
+    if (!isBase) h += '<p class="muted">Imporditud andmeid ei saa 2023. aasta tulemusega võrrelda.</p>';
+    else {
+      var now = new Map(res.elected.map(function (c) { return [c.nr, c.elected]; }));
+      var inn = [], outn = [], typ = [];
+      now.forEach(function (t, nr) { if (!OFF_TYPE.has(nr)) inn.push(nr); else if (OFF_TYPE.get(nr) !== t) typ.push(nr); });
+      OFF_TYPE.forEach(function (t, nr) { if (!now.has(nr)) outn.push(nr); });
+      if (!inn.length && !outn.length && !typ.length) h += '<p class="muted">Koosseis on sama mis 2023. aastal' + (changedCount() ? ', kuigi hääli on muudetud.' : '.') + '</p>';
+      else {
+        var li = function (nr, extra) { var c = candMap.get(nr); return '<li><button type="button" class="cname" data-open="' + nr + '">' + esc(c.name) + '</button> <span class="small muted">' + esc(partyOf(c.party).short) + ', ringkond ' + c.district + (extra ? ', ' + extra : '') + '</span></li>'; };
+        h += '<div class="diffcols"><div class="card" style="padding:12px 14px"><h3>Pääsevad Riigikokku (' + inn.length + ')</h3>' + (inn.length ? '<ul>' + inn.map(function (nr) { return li(nr, TYPE_LC[now.get(nr)]); }).join('') + '</ul>' : '<p class="small muted">—</p>') + '</div>' +
+          '<div class="card" style="padding:12px 14px"><h3>Jäävad välja (' + outn.length + ')</h3>' + (outn.length ? '<ul>' + outn.map(function (nr) { return li(nr, 'oli ' + TYPE_LC[OFF_TYPE.get(nr)]); }).join('') + '</ul>' : '<p class="small muted">—</p>') + '</div></div>';
+        if (typ.length) h += '<div class="card" style="padding:12px 14px;margin-top:12px"><h3>Muutus mandaadi liigis (' + typ.length + ')</h3><ul>' + typ.map(function (nr) { return li(nr, TYPE_LC[OFF_TYPE.get(nr)] + ' → ' + TYPE_LC[now.get(nr)]); }).join('') + '</ul></div>';
+      }
+    }
+    h += '</section>';
+    el.innerHTML = h;
+  }
+
+  // ---------- kandidaadi kaart
+  var dlgNr = null;
+  function li2(nr, cls, extra) {
+    var c = res.byNr.get(nr);
+    return '<li class="' + cls + '"><button type="button" class="cname" data-open="' + nr + '">' + esc(c.name) + '</button> <span class="small muted tnum">' + esc(partyOf(c.party).short) + ', ringk. ' + c.district + ', ' + nf0.format(c.votes) + ' häält, ' + pctQ(c) + (extra || '') + '</span></li>';
+  }
+  function chainListHTML(list, startNo) {
+    var firstFree = -1;
+    list.forEach(function (nr, i) { if (firstFree < 0 && isAvail(nr)) firstFree = i; });
+    return '<ol start="' + (startNo || 1) + '">' + list.map(function (nr, i) {
+      var cls = !isAvail(nr) ? 'used' : (i === firstFree ? 'next' : '');
+      var extra = seatedNow.has(nr) ? ' — Riigikogus' : (sim.gone.has(nr) ? ' — loobunud' : '');
+      return li2(nr, cls, extra);
+    }).join('') + '</ol>';
+  }
+  function lisaPreview() {
+    var x = res.lisa.slice(0, 3);
+    if (!x.length) return 'Lisamandaatide tabel on tühi.';
+    return 'Järgmised lisamandaadid: ' + x.map(function (f) { return partyOf(f.party).short + ' (võrdlusarv ' + nf1.format(f.value) + ') → ' + cname(f.sub); }).join('; ') + '.';
+  }
+  function openCand(nr) {
+    var c = res.byNr.get(nr), m = candMap.get(nr);
+    if (!c || !m) return;
+    dlgNr = nr;
+    var p = partyOf(c.party), d = distMap.get(c.district), dlg = byId('candDlg');
+    dlg.style.setProperty('--pc', p.color);
+    var dr = res.districts.filter(function (x) { return x.nr === c.district; })[0];
+    var e = dr && c.party ? dr.parties.filter(function (x) { return x.party === c.party; })[0] : null;
+    var rank = e ? e.ranked.indexOf(nr) + 1 : 0;
+    var h = '<div class="dlg"><div class="dlg-h"><span class="numbox' + (c.elected ? ' is-el' : '') + '" style="--pc:' + p.color + '">' + c.nr + '</span><div style="min-width:0"><h2 id="candDlgTitle">' + esc(c.name) + '</h2><p class="small muted">' + esc(c.party ? p.name : 'Üksikkandidaat') + ' · valimisringkond nr ' + c.district + ' (' + esc(d.short || d.name) + ')</p></div><button type="button" class="btn btn-ghost" data-close>Sulge</button></div><div class="dlg-b">';
+    h += '<dl class="facts"><div><dt>Hääli</dt><dd>' + nf0.format(c.votes) + '</dd></div><div><dt>Lihtkvoodist</dt><dd>' + pctQ(c) + '</dd></div>' +
+      (c.party ? '<div><dt>Ringkonnanimekirjas</dt><dd>' + c.distPos + '.</dd></div><div><dt>Üleriigilises nimekirjas</dt><dd>' + c.natPos + '.</dd></div>' : '') +
+      (rank ? '<div><dt>Erakonna ringkonnas häälte arvult</dt><dd>' + rank + '.</dd></div>' : '') +
+      (c.elected === 'C' ? '<div><dt>Võrdlusarv</dt><dd>' + nf4.format(c.compFigure) + '</dd></div><div><dt>Jagaja</dt><dd>' + c.compK + '<sup>0,9</sup> = ' + nf4.format(E.divisor(c.compK)) + '</dd></div>' : '') + '</dl>';
+    h += '<div class="cst">' + statusHTML(c) + '</div>';
+    if (c.elected) {
+      var seat = byOrig.get(nr);
+      if (seat && seat.holder !== nr) h += '<div class="holder' + (seat.holder ? '' : ' vacant') + '">' + (seat.holder ? 'Praegu asemel: <b>' + esc(cname(seat.holder)) + '</b> — ' + esc(viaText(seat.history[seat.history.length - 1])) : 'Kohta ei saanud täita') + '</div>';
+      h += '<div class="chainlist"><h3>Asendusliikmete järjekord</h3>';
+      if (!c.party || !res.qualifies.get(c.party)) {
+        h += '<p class="small muted">' + (c.party ? 'Erakond jäi alla 5% künnise, seega asendusliikmeid ei registreerita (RKVS § 75 lg 2).' : 'Üksikkandidaadil asendusliikmeid ei ole.') + ' Koha täidab lisamandaadi alusel määratud asendusliige (RKLS § 12 lg 4). ' + esc(lisaPreview()) + '</p>';
+      } else {
+        var ch = E.substituteChain(res, nr);
+        if (c.elected !== 'C') {
+          h += '<div><h4>1) Sama erakonna ringkonna nr ' + c.district + ' asendusliikmed (RKLS § 12 lg 1)</h4>' + (ch.district.length ? chainListHTML(ch.district, 1) : '<p class="small muted">Puuduvad — ükski valimata kandidaat ei saanud vähemalt 10% lihtkvoodist.</p>') + '</div>';
+          h += '<div><h4>2) Seejärel erakonna üleriigiline nimekiri (RKLS § 12 lg 3)</h4>' + (ch.national.length ? chainListHTML(ch.national, ch.district.length + 1) : '<p class="small muted">Puuduvad.</p>') + '</div>';
+        } else {
+          h += '<div><h4>1) Erakonna üleriigiline asendusliikmete nimekiri (RKLS § 12 lg 2)</h4>' + (ch.national.length ? chainListHTML(ch.national, 1) : '<p class="small muted">Puuduvad.</p>') + '</div>';
+        }
+        h += '<p class="small muted">Kui nimekirjas asendusliikmeid enam pole, täidetakse koht lisamandaadiga (RKLS § 12 lg 4). ' + esc(lisaPreview()) + '</p>';
+      }
+      h += '</div>';
+    } else if (c.party && res.qualifies.get(c.party) && !c.out) {
+      var hasDistEl = res.elected.some(function (x) { return x.party === c.party && x.district === c.district && x.elected !== 'C'; });
+      var lr = res.lisa.filter(function (x) { return x.sub === nr; })[0];
+      h += '<div class="chainlist"><h3>Asendusliikme kohad</h3><ul class="small" style="margin:0;padding-left:1.2em;display:grid;gap:3px">' +
+        '<li>Ringkonna nr ' + c.district + ' asendusliikmete nimekirjas: ' + (c.distSubRank ? '<b>' + c.distSubRank + '.</b>' : (hasDistEl ? 'ei ole (alla 10% lihtkvoodist)' : 'ei registreerita (erakonnal pole selles ringkonnas ringkonnas valitud liikmeid)')) + '</li>' +
+        '<li>Üleriigilises asendusliikmete nimekirjas: <b>' + c.natSubRank + '.</b>' + (reach(c, 20) ? ' (≥ 5% lihtkvoodist, nimekirja järjekorras)' : ' (alla 5% lihtkvoodist, protsendi järgi)') + '</li>' +
+        (lr ? '<li>Lisamandaatide tabelis (§ 76): ' + lr.rank + '.</li>' : '') + '</ul></div>';
+    }
+    h += '<div style="display:grid;gap:8px"><label class="small"><input type="checkbox" id="outToggle" data-out="' + nr + '"' + (m.out ? ' checked' : '') + '> Kandidaat langes välja: suri või registreerimine tühistati (RKVS § 62 lg 9)</label>';
+    if (seatedNow.has(nr)) h += '<div><button type="button" class="btn btn-sm" data-leave="' + nr + '">Lahkub Riigikogust (volitused peatuvad või lõpevad)</button></div>';
+    else if (sim.gone.has(nr)) h += '<div><button type="button" class="btn btn-sm" data-unleave="' + nr + '">Tühista lahkumine või loobumine</button></div>';
+    else if (c.party && res.qualifies.get(c.party) && !c.elected && !c.out) h += '<div><button type="button" class="btn btn-sm" data-leave="' + nr + '">Loobub asendusliikme kohast</button></div>';
+    h += '</div></div><div class="dlg-f"><button type="button" class="btn" data-jump="' + nr + '">Muuda hääli</button><button type="button" class="btn btn-primary" data-close>Valmis</button></div></div>';
+    dlg.innerHTML = h;
+    if (!dlg.open) { try { dlg.showModal(); } catch (err) { dlg.setAttribute('open', ''); } }
+  }
+  function refreshDialog() {
+    var dlg = byId('candDlg');
+    if (dlg.open && dlgNr != null) { if (res.byNr.has(dlgNr)) openCand(dlgNr); else dlg.close(); }
+  }
+  function closeDialogs() {
+    ['candDlg', 'dataDlg'].forEach(function (id) { var d = byId(id); if (d.open) d.close(); });
+  }
+
+  // ---------- andmete dialoog
+  function exportModel() {
+    var L = ['{', '"format": "riigikogu-valimismudel/1",', '"districts": ['];
+    model.districts.forEach(function (d, i) { L.push('  ' + JSON.stringify({ nr: d.nr, name: d.name, mandates: d.mandates, voters: d.voters || 0 }) + (i < model.districts.length - 1 ? ',' : '')); });
+    L.push('],', '"parties": [');
+    model.parties.forEach(function (p, i) { L.push('  ' + JSON.stringify({ id: p.id, name: p.name, short: p.short, color: p.color, lot: p.lot }) + (i < model.parties.length - 1 ? ',' : '')); });
+    L.push('],', '"candidates": [');
+    model.candidates.forEach(function (c, i) { L.push('  ' + JSON.stringify({ nr: c.nr, name: c.name, district: c.district, party: c.party, natPos: c.natPos, distPos: c.distPos, votes: c.votes, out: !!c.out }) + (i < model.candidates.length - 1 ? ',' : '')); });
+    L.push(']', '}');
+    return L.join('\n');
+  }
+  function openData() {
+    byId('dataText').value = exportModel();
+    byId('dataMsg').innerHTML = '';
+    var dlg = byId('dataDlg');
+    if (!dlg.open) { try { dlg.showModal(); } catch (err) { dlg.setAttribute('open', ''); } }
+  }
+  function applyData() {
+    var msg = byId('dataMsg'), o;
+    try { o = JSON.parse(byId('dataText').value); } catch (e) { msg.innerHTML = '<p class="err">JSON ei ole korrektne: ' + esc(e.message) + '</p>'; return; }
+    var v = validateModel(o);
+    if (!v.ok) { msg.innerHTML = '<p class="err">' + esc(v.error) + '</p>'; return; }
+    model = v.model; isBase = sameAsBase(model);
+    state.leaves = []; state.struct++; state.subsParty = null;
+    hemiCache = { S: -1 };
+    index();
+    refresh();
+    msg.innerHTML = '<p class="okmsg">Rakendatud: ' + model.candidates.length + ' kandidaati, ' + model.parties.length + ' erakonda, ' + model.districts.length + ' ringkonda.</p>';
+  }
+
+  // ---------- sündmused
+  document.addEventListener('click', function (ev) {
+    var t = ev.target.closest('[data-open],[data-district],[data-tab],[data-scale],[data-swing],[data-leave],[data-unleave],[data-restore],[data-sp],[data-jump],[data-close],[data-apply7],#simClear,#zeroDistrict,#btnReset,#btnZero,#btnData,#dataCopy,#dataApply');
+    if (!t) {
+      var qr = byId('qres');
+      if (qr && !qr.hidden && !ev.target.closest('.grow')) qr.hidden = true;
+      return;
+    }
+    var ds = t.dataset;
+    if (ds.close !== undefined) { var dlg = t.closest('dialog'); if (dlg) dlg.close(); return; }
+    if (ds.open) { openCand(+ds.open); return; }
+    if (ds.jump) { jumpTo(+ds.jump); return; }
+    if (ds.tab) { setTab(ds.tab); return; }
+    if (ds.district) { state.district = +ds.district; renderVotes(); saveSoon(); return; }
+    if (ds.scale) {
+      var f = +ds.scale, pid = +ds.pid;
+      model.candidates.forEach(function (c) { if (c.district === state.district && c.party === pid) c.votes = Math.round(c.votes * f); });
+      state.struct++; refresh(); return;
+    }
+    if (ds.swing) {
+      var sp = +byId('swingParty').value, g = +ds.swing;
+      state.swingParty = sp;
+      model.candidates.forEach(function (c) { if (c.party === sp) c.votes = Math.round(c.votes * g); });
+      state.struct++; refresh(); return;
+    }
+    if (ds.leave) { var n = +ds.leave; if (state.leaves.indexOf(n) < 0) state.leaves.push(n); refresh(); return; }
+    if (ds.unleave) { var u = +ds.unleave; state.leaves = state.leaves.filter(function (x) { return x !== u; }); refresh(); return; }
+    if (ds.restore) { restoreSeat(+ds.restore); refresh(); return; }
+    if (ds.sp) { state.subsParty = +ds.sp; renderSubs(); saveSoon(); return; }
+    if (ds.apply7 !== undefined) {
+      var s7 = seats7(model.districts.map(function (d) { return { nr: d.nr, v: d.voters || 0 }; }), 101);
+      if (s7) { model.districts.forEach(function (d) { d.mandates = s7.rows.get(d.nr).seats; }); hemiCache = { S: -1 }; state.struct++; refresh(); }
+      return;
+    }
+    switch (t.id) {
+      case 'simClear': state.leaves = []; refresh(); break;
+      case 'zeroDistrict': model.candidates.forEach(function (c) { if (c.district === state.district) c.votes = 0; }); state.struct++; refresh(); break;
+      case 'btnReset': model = baseModel(); isBase = true; state.leaves = []; state.struct++; hemiCache = { S: -1 }; index(); refresh(); break;
+      case 'btnZero': model.candidates.forEach(function (c) { c.votes = 0; }); state.leaves = []; state.struct++; refresh(); break;
+      case 'btnData': openData(); break;
+      case 'dataCopy':
+        var ta = byId('dataText'), msg = byId('dataMsg');
+        var fallback = function () { ta.focus(); ta.select(); msg.innerHTML = '<p class="small muted">Tekst on valitud — kopeeri see klahvidega Ctrl+C / ⌘C.</p>'; };
+        try { navigator.clipboard.writeText(ta.value).then(function () { msg.innerHTML = '<p class="okmsg">Kopeeritud lõikelauale.</p>'; }, fallback); } catch (e) { fallback(); }
+        break;
+      case 'dataApply': applyData(); break;
+    }
+  });
+  document.addEventListener('input', function (ev) {
+    var t = ev.target;
+    if (t.matches('input[data-v]')) {
+      var c = candMap.get(+t.dataset.v), v = parseInt(t.value, 10);
+      if (c) { c.votes = isFinite(v) && v > 0 ? v : 0; scheduleCalc(); }
+    } else if (t.id === 'q') search(t.value);
+  });
+  document.addEventListener('change', function (ev) {
+    var t = ev.target;
+    if (t.matches('input[data-v]')) { var c = candMap.get(+t.dataset.v); if (c && String(c.votes) !== t.value) t.value = c.votes; }
+    else if (t.matches('input[data-m]')) { var d = distMap.get(+t.dataset.m), v = parseInt(t.value, 10); if (d) { d.mandates = isFinite(v) && v > 0 ? v : 0; hemiCache = { S: -1 }; state.struct++; refresh(); } }
+    else if (t.matches('input[data-vv]')) { var d2 = distMap.get(+t.dataset.vv), v2 = parseInt(t.value, 10); if (d2) { d2.voters = isFinite(v2) && v2 > 0 ? v2 : 0; refresh(); } }
+    else if (t.id === 'outToggle') { var m = candMap.get(+t.dataset.out); if (m) { m.out = t.checked; refresh(); } }
+    else if (t.id === 'swingParty') state.swingParty = +t.value;
+    else if (t.id === 'dataFile' && t.files && t.files[0]) {
+      var rd = new FileReader();
+      rd.onload = function () { byId('dataText').value = String(rd.result || ''); byId('dataMsg').innerHTML = '<p class="small muted">Fail loetud. Vajuta „Rakenda andmed“.</p>'; };
+      rd.readAsText(t.files[0]);
+    }
+  });
+  document.addEventListener('keydown', function (ev) {
+    if (ev.target.matches && ev.target.matches('[role="tab"]') && (ev.key === 'ArrowRight' || ev.key === 'ArrowLeft')) {
+      var i = TABS.indexOf(state.tab) + (ev.key === 'ArrowRight' ? 1 : -1);
+      i = (i + TABS.length) % TABS.length;
+      setTab(TABS[i]); byId('tab-' + TABS[i]).focus();
+    }
+    if (ev.key === 'Escape' && byId('qres') && !byId('qres').hidden) byId('qres').hidden = true;
+  });
+  ['candDlg', 'dataDlg'].forEach(function (id) {
+    var d = byId(id);
+    d.addEventListener('click', function (ev) { if (ev.target === d) d.close(); });
+    d.addEventListener('close', function () { if (id === 'candDlg') dlgNr = null; });
+  });
+
+  // ---------- käivitus
+  load();
+  recompute();
+  verify();
+  renderSummary();
+  setTab(state.tab);
+})();
+</script>
+
+</body>
+</html>
