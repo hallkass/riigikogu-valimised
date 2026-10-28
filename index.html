@@ -160,6 +160,13 @@ table { border-collapse: collapse; width: 100%; }
 .ptable .plink { font-weight: 600; }
 .ptable tr.below .plink { font-weight: 500; color: var(--ink-3); }
 .ptable td, .ptable th { padding-left: .5rem; padding-right: .5rem; }
+.ptable { table-layout: fixed; min-width: 780px; }
+.dptable { table-layout: fixed; min-width: 700px; }
+.ptable td:first-child, .dptable td:first-child { overflow-wrap: anywhere; }
+.frz { color: var(--accent); font-weight: 500; }
+.frz.off { visibility: hidden; }
+.pct-below { color: var(--warn); font-weight: 600; }
+.dptable td:nth-child(5) { white-space: nowrap; }
 .dsec { margin: 18px 0 14px; overflow: hidden; }
 .dsec-h { display: flex; flex-wrap: wrap; gap: 12px 28px; align-items: flex-end; justify-content: space-between; padding: 14px 14px 12px; border-bottom: 1px solid var(--rule); }
 .dptable td, .dptable th { padding-top: .38rem; padding-bottom: .38rem; }
@@ -1204,19 +1211,20 @@ textarea.inp { min-height: 260px; font: .8rem/1.4 var(--f-mono); resize: vertica
   function renderPartyTable() {
     var showOff = isBase;
     var cols = showOff ? 9 : 8;
-    byId('ptools').innerHTML = '<span>Muuda erakonna hääli kõigis ringkondades. Klõpsa erakonna nimel, et näha tulemust ringkondade ja kandidaatide kaupa.</span>' + stepperHTML();
-    var rows = res.parties.slice().sort(function (a, b) { return b.votes - a.votes; });
-    var h = '<thead><tr><th>Erakond</th><th class="num">Hääli</th><th class="num">%</th><th class="num" title="Isikumandaadid">Isiku</th><th class="num" title="Ringkonnamandaadid">Ringk.</th><th class="num" title="Kompensatsioonimandaadid">Komp.</th><th class="num">Kokku</th>' + (showOff ? '<th class="num" title="' + baseYear + ' ametlik tulemus">' + baseYear + '</th>' : '') + '<th>Hääled ±</th></tr></thead><tbody>';
+    byId('ptools').innerHTML = '<span>Muuda erakonna hääli kõigis ringkondades. Klõpsa erakonna nimel, et näha tulemust ringkondade ja kandidaatide kaupa. <span class="frz' + (freezeN ? '' : ' off') + '">Järjestus on muutmise ajaks lukus ja uueneb, kui liigud tabelist välja.</span></span>' + stepperHTML();
+    var rows = orderBy(res.parties.slice().sort(function (a, b) { return b.votes - a.votes; }), freezeN, function (r) { return r.id; });
+    var cg = '<colgroup><col><col style="width:6.4em"><col style="width:3.8em"><col style="width:3.6em"><col style="width:3.9em"><col style="width:3.9em"><col style="width:4.9em">' + (showOff ? '<col style="width:3.8em">' : '') + '<col style="width:13.6em"></colgroup>';
+    var h = cg + '<thead><tr><th>Erakond</th><th class="num">Hääli</th><th class="num">%</th><th class="num" title="Isikumandaadid">Isiku</th><th class="num" title="Ringkonnamandaadid">Ringk.</th><th class="num" title="Kompensatsioonimandaadid">Komp.</th><th class="num">Kokku</th>' + (showOff ? '<th class="num" title="' + baseYear + ' ametlik tulemus">' + baseYear + '</th>' : '') + '<th>Hääled ±</th></tr></thead><tbody>';
     var thrDone = false;
-    rows.forEach(function (r) {
+    rows.forEach(function (r, idx) {
       var p = partyOf(r.id);
-      if (!r.qualifies && !thrDone) {
+      if (!thrDone && (freezeN ? idx === freezeSep : !r.qualifies)) {
         thrDone = true;
         h += '<tr class="thr"><td colspan="' + cols + '" class="small muted">5% künnis: ' + nf0.format(Math.ceil(res.N / 20)) + ' häält</td></tr>';
       }
       var off = OFF_SEATS.get(r.id) || 0, dlt = r.total - off;
-      h += '<tr class="' + (r.qualifies ? '' : 'below') + '" style="--pc:' + p.color + '"><td><div class="pname"><span class="sw"></span><div><button type="button" class="plink" data-zp="' + r.id + '">' + esc(p.name) + '</button>' + (r.qualifies ? '' : '<div class="pshort">alla 5% künnise</div>') + '</div></div></td>' +
-        '<td class="num">' + nf0.format(r.votes) + '</td><td class="num">' + nf1.format(r.share * 100) + '</td>' +
+      h += '<tr class="' + (r.qualifies ? '' : 'below') + '" style="--pc:' + p.color + '"><td><div class="pname"><span class="sw"></span><div><button type="button" class="plink" data-zp="' + r.id + '">' + esc(p.name) + '</button></div></div></td>' +
+        '<td class="num">' + nf0.format(r.votes) + '</td><td class="num">' + (r.qualifies ? nf1.format(r.share * 100) : '<span class="pct-below" title="alla 5% künnise">' + nf1.format(r.share * 100) + '</span>') + '</td>' +
         '<td class="num">' + (r.personal || '·') + '</td><td class="num">' + (r.district || '·') + '</td><td class="num">' + (r.comp || '·') + '</td>' +
         '<td class="num"><span class="total">' + r.total + '</span>' + (showOff && dlt ? '<span class="delta ' + (dlt > 0 ? 'up' : 'down') + '">' + (dlt > 0 ? '+' : '−') + Math.abs(dlt) + '</span>' : '') + '</td>' +
         (showOff ? '<td class="num muted">' + off + '</td>' : '') + '<td>' + adjHTML('n', r.id, null) + '</td></tr>';
@@ -1257,6 +1265,26 @@ textarea.inp { min-height: 260px; font: .8rem/1.4 var(--f-mono); resize: vertica
     }
     return h + '</span>';
   }
+  // Erakondade järjestus lukustatakse muutmise ajaks, et read ei liiguks klõpsude vahel
+  var freezeN = null, freezeSep = -1, freezeD = null, freezeDKey = null;
+  function orderBy(rows, order, key) {
+    if (!order) return rows;
+    var pos = new Map(order.map(function (id, i) { return [id, i]; }));
+    return rows.sort(function (a, b) { var x = pos.has(key(a)) ? pos.get(key(a)) : 1e9, y = pos.has(key(b)) ? pos.get(key(b)) : 1e9; return x - y; });
+  }
+  function freezeFor(scope) {
+    if (scope === 'n' && !freezeN) {
+      var srt = res.parties.slice().sort(function (a, b) { return b.votes - a.votes; });
+      freezeN = srt.map(function (r) { return r.id; });
+      freezeSep = srt.findIndex(function (r) { return !r.qualifies; });
+    }
+    if (scope === 'd' && (!freezeD || freezeDKey !== state.district)) {
+      var dr = res.districts.filter(function (x) { return x.nr === state.district; })[0];
+      freezeD = dr ? dr.parties.map(function (e) { return e.party; }) : null; freezeDKey = state.district;
+    }
+  }
+  function unfreezeN() { if (freezeN) { freezeN = null; renderPartyTable(); } }
+  function unfreezeD() { if (freezeD) { freezeD = null; freezeDKey = null; renderDistrictParties(); } }
   function scaleParty(pid, f, d) {
     var changed = [];
     model.candidates.forEach(function (c) {
@@ -1296,9 +1324,9 @@ textarea.inp { min-height: 260px; font: .8rem/1.4 var(--f-mono); resize: vertica
     var d = distMap.get(state.district);
     var dr = res.districts.filter(function (x) { return x.nr === d.nr; })[0];
     var T = dr ? dr.T : 0;
-    var h = '<div class="ptools"><span>Erakondade hääled ringkonnas. Muutus jaguneb erakonna kandidaatidele proportsionaalselt; erakonna nimi avab süvavaate.</span>' + stepperHTML() + '</div>' +
-      '<div class="scroll-x"><table class="tbl dptable"><thead><tr><th>Erakond</th><th class="num">Hääli</th><th class="num">%</th><th class="num" title="Erakonna hääled lihtkvootides">Lihtkvoote</th><th class="num" title="Ringkonnas saadud isiku- ja ringkonnamandaadid">Mandaate</th><th>Hääled ±</th></tr></thead><tbody>';
-    (dr ? dr.parties : []).forEach(function (e) {
+    var h = '<div class="ptools"><span>Erakondade hääled ringkonnas. Muutus jaguneb erakonna kandidaatidele proportsionaalselt; erakonna nimi avab süvavaate. <span class="frz' + (freezeD && freezeDKey === d.nr ? '' : ' off') + '">Järjestus on muutmise ajaks lukus ja uueneb, kui liigud tabelist välja.</span></span>' + stepperHTML() + '</div>' +
+      '<div class="scroll-x"><table class="tbl dptable"><colgroup><col><col style="width:6.4em"><col style="width:4em"><col style="width:5.8em"><col style="width:9.5em"><col style="width:13.6em"></colgroup><thead><tr><th>Erakond</th><th class="num">Hääli</th><th class="num">%</th><th class="num" title="Erakonna hääled lihtkvootides">Lihtkvoote</th><th class="num" title="Ringkonnas saadud isiku- ja ringkonnamandaadid">Mandaate</th><th>Hääled ±</th></tr></thead><tbody>';
+    orderBy((dr ? dr.parties : []).slice(), freezeD && freezeDKey === d.nr ? freezeD : null, function (e) { return e.party; }).forEach(function (e) {
       var p = partyOf(e.party), mand;
       if (e.qualifies) mand = '<b>' + e.filled + '</b>' + (e.bonus ? '<sup title="Jääk vähemalt 75% lihtkvoodist">+</sup>' : '') + (e.filled < e.won ? ' <span class="tag warn-tag" title="Kandidaatidel alla 10% lihtkvoodist">' + (e.won - e.filled) + ' täitmata</span>' : '');
       else mand = e.personal ? '<b>' + e.personal + '</b> <span class="small muted">isiku-</span>' : '<span class="small muted">alla 5%</span>';
@@ -2136,6 +2164,7 @@ textarea.inp { min-height: 260px; font: .8rem/1.4 var(--f-mono); resize: vertica
     setBase(y);
     model = datasetModel(y); isBase = true;
     state.ruleset = 'auto';
+    freezeN = freezeD = freezeDKey = null;
     state.leaves = []; state.struct++; state.subsParty = null;
     state.zoom = { p: null, d: null, u: null, c: null };
     hemiCache = { S: -1 };
@@ -2578,19 +2607,23 @@ textarea.inp { min-height: 260px; font: .8rem/1.4 var(--f-mono); resize: vertica
   document.addEventListener('click', function (ev) {
     var t = ev.target.closest('[data-open],[data-district],[data-tab],[data-step],[data-adj],[data-adjreset],[data-zroot],[data-zc],[data-zu],[data-zp],[data-zsort],[data-emetric],[data-hnk],[data-hpk],[data-hy],[data-hload],[data-hname],[data-hunlink],[data-hlinkadd],[data-hlinkdel],[data-hctxall],[data-hist],[data-leave],[data-unleave],[data-restore],[data-sp],[data-jump],[data-close],[data-apply7],#simClear,#zeroDistrict,#btnReset,#btnZero,#btnData,#dataCopy,#dataApply');
     if (!t) {
+      if (!ev.target.closest('.party-card')) unfreezeN();
+      if (!ev.target.closest('#dparties')) unfreezeD();
       var qr = byId('qres');
       if (qr && !qr.hidden && !ev.target.closest('.grow')) qr.hidden = true;
       return;
     }
     var ds = t.dataset;
+    if (!ev.target.closest('.party-card')) unfreezeN();
+    if (!ev.target.closest('#dparties')) unfreezeD();
     if (ds.close !== undefined) { var dlg = t.closest('dialog'); if (dlg) dlg.close(); return; }
     if (ds.open) { openCand(+ds.open); return; }
     if (ds.jump) { jumpTo(+ds.jump); return; }
     if (ds.tab) { setTab(ds.tab); return; }
     if (ds.district) { state.district = +ds.district; renderVotes(); saveSoon(); return; }
     if (ds.step) { state.step = +ds.step; renderPartyTable(); renderDistrictParties(); saveSoon(); return; }
-    if (ds.adj) { scaleParty(+ds.pid, 1 + (+ds.f) * state.step / 100, ds.adj === 'd' ? state.district : null); return; }
-    if (ds.adjreset) { resetParty(+ds.pid, ds.adjreset === 'd' ? state.district : null); return; }
+    if (ds.adj) { freezeFor(ds.adj); scaleParty(+ds.pid, 1 + (+ds.f) * state.step / 100, ds.adj === 'd' ? state.district : null); return; }
+    if (ds.adjreset) { freezeFor(ds.adjreset); resetParty(+ds.pid, ds.adjreset === 'd' ? state.district : null); return; }
     if (ds.zroot !== undefined) { state.zoom = { p: null, d: null, u: null, c: null }; goZoom(); return; }
     if (ds.zc) { var zc = candMap.get(+ds.zc); if (zc) { closeDialogs(); state.zoom = { p: zc.party || 0, d: zc.district, u: null, c: zc.nr }; goZoom(); } return; }
     if (ds.zu) { state.zoom.u = +ds.zu; state.zoom.c = null; goZoom(); return; }
@@ -2636,6 +2669,19 @@ textarea.inp { min-height: 260px; font: .8rem/1.4 var(--f-mono); resize: vertica
       if (c) { c.votes = isFinite(v) && v > 0 ? v : 0; scheduleCalc(); }
     } else if (t.id === 'q') search(t.value);
     else if (t.id === 'hq') histSearch(t.value);
+  });
+  document.addEventListener('mouseleave', function (ev) {
+    var t = ev.target;
+    if (!t || !t.classList) return;
+    if (t.classList.contains('party-card')) unfreezeN();
+    else if (t.id === 'dparties') unfreezeD();
+  }, true);
+  document.addEventListener('focusout', function (ev) {
+    var nt = ev.relatedTarget;
+    if (!nt || !ev.target.closest) return;
+    var pc = ev.target.closest('.party-card'), dp = ev.target.closest('#dparties');
+    if (pc && !pc.contains(nt)) unfreezeN();
+    if (dp && !dp.contains(nt)) unfreezeD();
   });
   document.addEventListener('toggle', function (ev) {
     var dt = ev.target;
