@@ -42,6 +42,7 @@ for path in sorted(glob.glob(os.path.join(src_dir, '*.json'))):
     summ = {}
     if t == 'kov':
         groups = {}
+        rep = set(i for i, u in enumerate(raw['units']) if 'kordush' in u['name'].lower())  # kordushääletamise hääli ei liideta
         for c in cands:
             L = lists[c[0]]
             if L[1] == 'P':
@@ -50,11 +51,11 @@ for path in sorted(glob.glob(os.path.join(src_dir, '*.json'))):
             else:
                 key = (L[1], '', 'Valimisliidud' if L[1] == 'A' else 'Üksikkandidaadid')
             g = groups.setdefault(key, [0, 0])
-            g[0] += c[4] or 0
+            g[0] += 0 if L[0] in rep else (c[4] or 0)
             g[1] += 1 if c[7] else 0
         rows = sorted(groups.items(), key=lambda kv: -kv[1][0])
         summ = {'units': sum(1 for u in raw['units'] if 'kordush' not in u['name'].lower()), 'seats': sum(u['seats'] for u in raw['units'] if 'kordush' not in u['name'].lower()), 'cands': len(cands),
-                'valid': sum(c[4] or 0 for c in cands),
+                'valid': sum(c[4] or 0 for c in cands if lists[c[0]][0] not in rep),
                 'parties': [[k[2], k[1], k[0], v[0], v[1]] for k, v in rows][:14]}
     else:
         lv = [0] * len(lists)

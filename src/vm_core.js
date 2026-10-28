@@ -353,10 +353,31 @@
     });
     return { o: o, n: n, bad: bad };
   }
-  function downloadJSON(name, obj) {
-    var blob = new Blob([JSON.stringify(obj)], { type: 'application/json' });
+  // faili pakkumine: claude.ai artefaktis allalaadimise võimekuse kaudu, mujal tavalise allalaadimisena
+  var dlCapP = null;
+  function inViewer() { return !!(window.claude && typeof window.claude.use === 'function'); }
+  function saveFile(name, text) {
+    if (inViewer()) {
+      if (!dlCapP) dlCapP = window.claude.use('downloads').then(function (d) { return d; }, function () { return null; });
+      dlCapP.then(function (d) {
+        if (!d) { alert('Failide salvestamine pole selles vaates saadaval.'); return; }
+        d.save({ filename: name, data: text }).catch(function (e) {
+          var c = e && e.code;
+          if (c === 'declined') return;
+          if (c === 'rate_limited') { alert('Salvestamise aken on juba avatud — proovi hetke pärast uuesti.'); return; }
+          alert('Faili salvestamine ei õnnestunud' + (e && e.message ? ': ' + e.message : '') + '.');
+        });
+      });
+      return;
+    }
+    var blob = new Blob([text], { type: 'application/json' });
     var a = document.createElement('a');
     a.href = URL.createObjectURL(blob); a.download = name;
     document.body.appendChild(a); a.click();
     setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  }
+  function downloadJSON(name, obj) { saveFile(name, JSON.stringify(obj)); }
+  function downloadDataFile(fn) {
+    fetch('data/' + fn).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+      .then(function (t) { saveFile(fn, t); }, function (e) { alert('Faili laadimine ebaõnnestus: ' + e.message); });
   }

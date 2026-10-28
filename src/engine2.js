@@ -281,13 +281,17 @@
   // 1993: isikumandaate polnud; kõik kohad jaotati modifitseeritud d'Hondti meetodil (jagajad k^0,9) 5% künnise ületanud
   //       nimekirjade ja üksikkandidaatide vahel;
   //       täitmata kohtade jaoks korraldati kordushääletamine.
-  // 1996: isikumandaadid lihtkvoodi järgi, nimekirjamandaadid modifitseeritud d'Hondti meetodil (k^0,9);
+  // 1996 ja 1999: isikumandaadid lihtkvoodi järgi, nimekirjamandaadid modifitseeritud d'Hondti meetodil (k^0,9);
   //       ainult üksikkandidaatidega ringkonnas jäid lihtkvoodita kohad täitmata (kordushääletamine, kus valiti enim hääli saanud).
   // 2002: modifitseeritud d'Hondt (k^0,9); võrdse häälte arvu korral jäi ettepoole nimekirjas eespool olev kandidaat.
+  // 2005: modifitseeritud d'Hondt (k^0,9), võrdsuse korral tagapool olev ettepoole; kompensatsioonimandaate veel polnud.
+  // Alates 2009: kehtivad reeglid (tavaline d'Hondt; Tallinnas, 2009 ka Vändra vallas, kompensatsioonimandaadid).
   var KOV_YEAR = {
     1993: { thr: 5, gte: true, comp: true, quota: false, dexp: 0.9, indThr: 5, r9: false, r10: false },
     1996: { thr: 5, gte: true, comp: true, dexp: 0.9, r9: false, r10: false },
-    2002: { thr: 5, gte: true, comp: true, dexp: 0.9, tieLater: false }
+    1999: { thr: 5, gte: true, comp: true, dexp: 0.9, r9: false, r10: false },
+    2002: { thr: 5, gte: true, comp: true, dexp: 0.9, tieLater: false },
+    2005: { thr: 5, gte: true, comp: true, dexp: 0.9 }
   };
   function kovRulesFor(year, U) {
     var R = KOV_YEAR[year];

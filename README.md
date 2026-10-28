@@ -8,7 +8,7 @@ Interaktiivne veebileht Riigikogu, kohalike omavalitsuste volikogude ja Euroopa 
 
 - **Avaleht** – viimaste valimiste kokkuvõte (Riigikogu, kohalikud, Europarlament), kandidaadiotsing ja kiirlingid.
 - **Riigikogu** – valimised 1992–2023: kandidaatide hääled ringkonniti, isiku-, ringkonna- ja kompensatsioonimandaadid, süvavaade erakond → ringkond → kandidaat → omavalitsus → jaoskond (2023), paber- ja e-hääled, asendusliikmed ja volituste peatumise simulatsioon, kogu arvutuskäik.
-- **Kohalikud** – kohaliku omavalitsuse volikogude valimised 2009–2025:
+- **Kohalikud** – kohaliku omavalitsuse volikogude valimised 1993–2025:
   - kogu Eesti: erakondade, valimisliitude ja üksikkandidaatide hääled ja kohad kokku, volikogude arv ja enamused; erakonna tulemused omavalitsuste kaupa;
   - omavalitsus: volikogu koosseis poolringina, nimekirjade hääled ja mandaadid (isiku-, nimekirja-, Tallinnas ringkonna- ja kompensatsioonimandaadid), ringkonnad, kandidaadid, d’Hondti võrdlusarvud, lisamandaatide tabel ja asendusliikmed;
   - kandidaat: hääled jaoskondade kaupa (kui avaandmetes olemas), asendusliikmete järjekord ja kandideerimise ajalugu.
@@ -60,6 +60,13 @@ Iga valimise ametlike häältega annab mudel ametliku tulemuse (kes osutus valit
 | 2017 | 79 / 79 | 1729 / 1729 | 1729 / 1729 | 179 / 1519 / 31 |
 | 2013 | 215 / 215 | 2951 / 2951 | 2951 / 2951 | 333 / 2593 / 25 |
 | 2009 | 226 / 226 | 3076 / 3076 | 3076 / 3076 | 352 / 2701 / 23 |
+| 2005 | 227 / 227 | 3111 / 3111 | 3111 / 3111 | 395 / 2716 / 0 |
+| 2002 | 241 / 241 | 3273 / 3273 | 3273 / 3273 | 444 / 2829 / 0 |
+| 1999 | 247 / 247 | 3355 / 3355 | 3355 / 3355 | 485 / 2870 / 0 |
+| 1996 | 260 / 261 | 3452 / 3453 | 3452 / 3452 | 611 / 2809 / 0 |
+| 1993 | 265 / 266 | 3519 / 3520 | 3519 / 3519 | 0 / 3520 / 0 |
+
+1993: üks erinevus (Kihelkonna vald, kaks kandidaati võrdse häälte arvuga, ametlikult valiti nimekirjas eespool olev). 1996: üks erinevus (Ruhnu valla kordushääletamine, kaks üksikkandidaati võrdse häälte arvuga).
 
 **Europarlament** – kõigil valimistel kattuvad valitud liikmed:
 

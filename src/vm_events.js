@@ -47,7 +47,7 @@
   function frzRerender() { if (page === 'kov') rerenderKovKeepFocus(); else if (page === 'ep') rerenderEpKeepFocus(); }
 
   document.addEventListener('click', function (ev) {
-    var t = ev.target.closest('[data-vktab],[data-vkzp],[data-vkunit],[data-vkd],[data-vkl],[data-kc],[data-vkov],[data-vadj],[data-vadjreset],[data-vstep],[data-vsnaps],[data-vsnapsave],[data-vsnapopen],[data-vsnapdl],[data-vsnapdel],[data-vsnapimport],[data-vsnapgo],[data-vclose],[data-vetab],[data-velist],[data-ec],[data-vep],[data-vhf],[data-vhnk],[data-vhpk],[data-vhist],[data-vhunlink],[data-vhlinkadd],[data-vhlinkdel],[data-vhctxall],[data-vhopen],[data-vopen],[data-vnew],[data-vudl],[data-vudel]');
+    var t = ev.target.closest('[data-vktab],[data-vkzp],[data-vkunit],[data-vkd],[data-vkl],[data-kc],[data-vkov],[data-vadj],[data-vadjreset],[data-vstep],[data-vsnaps],[data-vsnapsave],[data-vsnapopen],[data-vsnapdl],[data-vsnapdel],[data-vsnapimport],[data-vsnapgo],[data-vclose],[data-vetab],[data-velist],[data-ec],[data-vep],[data-vhf],[data-vhnk],[data-vhpk],[data-vhist],[data-vhunlink],[data-vhlinkadd],[data-vhlinkdel],[data-vhctxall],[data-vhopen],[data-vopen],[data-vnew],[data-vudl],[data-vudel],[data-vdlfile]');
     // järjestuse lukk vabaneb klõpsuga mujal
     if (FREEZE.size) {
       var inside = ev.target.closest('[data-vfrz]'), key = inside && inside.dataset.vfrz;
@@ -114,6 +114,7 @@
     if (ds.vopen) { openElection(ds.vopen); return; }
     if (ds.vnew !== undefined) { createElection(); return; }
     if (ds.vudl) { downloadUser(ds.vudl); return; }
+    if (ds.vdlfile) { downloadDataFile(ds.vdlfile); return; }
     if (ds.vudel) { deleteUser(ds.vudel); return; }
   });
   document.addEventListener('submit', function (ev) {

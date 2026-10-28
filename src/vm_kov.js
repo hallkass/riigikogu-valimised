@@ -34,19 +34,23 @@
       }
       return o;
     }
+    // kordushääletamine täidab esimese vooru täitmata kohad: selle kohad lähevad arvesse, hääled ja volikogude arv mitte
+    function isRep(u) { return /kordush/i.test(E.units[u].name); }
     E.res.forEach(function (r, u) {
-      T += r.T; if (!/kordush/i.test(E.units[u].name)) S += E.units[u].seats; // kordushääletamine täidab esimese vooru täitmata kohad
+      var rep = isRep(u);
+      if (!rep) { T += r.T; S += E.units[u].seats; }
       var per = new Map();
       r.lists.forEach(function (x, l) {
         var k = gkey(E, l), o = grp(k, l);
-        o.votes += x.votes; o.seats += x.seats; o.lists++;
+        if (!rep) { o.votes += x.votes; o.lists++; }
+        o.seats += x.seats;
         for (var t = 1; t <= 4; t++) o.t[t] += x.t[t];
         per.set(k, (per.get(k) || 0) + x.seats);
-        if (k !== 'P' + E.lists[l].party && x.seats * 2 > E.units[u].seats) o.maj++;
+        if (!rep && k !== 'P' + E.lists[l].party && x.seats * 2 > E.units[u].seats) o.maj++;
       });
-      per.forEach(function (s, k) { var o = g.get(k); if (s > 0) o.councils++; if (k.charAt(0) === 'P' && s * 2 > E.units[u].seats) o.maj++; });
+      if (!rep) per.forEach(function (s, k) { var o = g.get(k); if (s > 0) o.councils++; if (k.charAt(0) === 'P' && s * 2 > E.units[u].seats) o.maj++; });
     });
-    E.cands.forEach(function (c) { var o = grp(gkey(E, c.list), c.list); o.v0 += c.v0; if (c.el) o.off++; });
+    E.cands.forEach(function (c) { var o = grp(gkey(E, c.list), c.list); if (!isRep(c.unit)) o.v0 += c.v0; if (c.el) o.off++; });
     var rows = Array.from(g.values()).sort(function (a, b) { return b.votes - a.votes; });
     E.nat = { rows: rows, T: T, S: S };
     return E.nat;
@@ -464,7 +468,8 @@
   }
   // tolleaegsed reeglid (leitud ametlike tulemuste põhjal; vt engine2.js KOV_YEAR)
   var KOV_HIST = [
-    [2005, 'Alates 2005. aastast kehtivad samad reeglid nagu praegu: nimekirjamandaadid jaotatakse tavalise d’Hondti meetodiga ja võrdse häälte arvu korral jääb ringkonnanimekirjas ettepoole tagapool olev kandidaat. Tallinnas jaotatakse kompensatsioonimandaadid (§ 56¹).'],
+    [2009, 'Alates 2009. aastast kehtivad samad reeglid nagu praegu: nimekirjamandaadid jaotatakse tavalise d’Hondti meetodiga ja võrdse häälte arvu korral jääb ringkonnanimekirjas ettepoole tagapool olev kandidaat. Tallinnas (2009. aastal ka mitme ringkonnaga Vändra vallas) jaotatakse kompensatsioonimandaadid.'],
+    [2005, '2005. aastal jaotati nimekirjamandaadid modifitseeritud d’Hondti meetodil (jagajad 1; 2<sup>0,9</sup>; 3<sup>0,9</sup> …, isikumandaatide võrra nihutatud); võrdse häälte arvu korral jäi ettepoole tagapool olev kandidaat. Kompensatsioonimandaate ei olnud: ka Tallinna ringkonnad jaotati eraldi.'],
     [2002, '2002. aastal jaotati nimekirjamandaadid modifitseeritud d’Hondti meetodil (jagajad 1; 2<sup>0,9</sup>; 3<sup>0,9</sup> …, isikumandaatide võrra nihutatud) ja võrdse häälte arvu korral jäi ettepoole nimekirjas eespool olev kandidaat.'],
     [1996, '1996. ja 1999. aastal jaotati nimekirjamandaadid modifitseeritud d’Hondti meetodil (jagajad 1; 2<sup>0,9</sup>; 3<sup>0,9</sup> …). Kui ringkonnas kandideerisid ainult üksikkandidaadid, said kohad ainult lihtkvoodi ületanud; ülejäänud kohad täideti kordushääletamisel, kus valituks osutusid enim hääli saanud (andmetes eraldi „kordushääletamine“).'],
     [1993, '1993. aastal isikumandaate ei olnud: kõik kohad jaotati modifitseeritud d’Hondti meetodil (jagajad 1; 2<sup>0,9</sup>; 3<sup>0,9</sup> …) 5% künnise ületanud nimekirjade ja üksikkandidaatide vahel. Täitmata kohtade jaoks korraldati kordushääletamine.']
@@ -472,7 +477,7 @@
   function kovHistNote(E) {
     var y = E.raw.rulesYear != null ? E.raw.rulesYear : E.year;
     return '<p>Mudel arvutab iga valimise tolleaegsete reeglitega, mis on leitud ametlike tulemuste põhjal (vahekaart „Kontroll“ võrdleb tulemust ametlikuga).</p><ul class="small">' + KOV_HIST.map(function (x) {
-      var on = !E.user && (x[0] === 2005 ? y >= 2005 : x[0] === 1996 ? (y === 1996 || y === 1999) : y === x[0]);
+      var on = !E.user && (x[0] === 2009 ? y >= 2009 : x[0] === 1996 ? (y === 1996 || y === 1999) : y === x[0]);
       return '<li' + (on ? ' class="hl-now"' : '') + '>' + x[1] + (on ? ' <span class="tag ok-tag">see valimine</span>' : '') + '</li>';
     }).join('') + '</ul>';
   }
