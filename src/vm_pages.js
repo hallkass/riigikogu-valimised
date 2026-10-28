@@ -41,7 +41,7 @@
     var h = '<section class="hero"><div><h1>Eesti valimiste mudel</h1><p class="lede">Riigikogu, kohalike volikogude ja Euroopa Parlamendi valimiste tulemused, mandaatide jaotus seaduse järgi ja asendusliikmed. Muuda hääli, lisa uusi valimisi või vahetulemusi ning vaata, kuidas koosseis muutub.</p></div>' +
       '<form class="hsearch" data-vhomeq><label class="vh" for="homeQ">Otsi kandidaati</label><input class="inp" id="homeQ" type="search" placeholder="Otsi kandidaati kõigilt valimistelt" autocomplete="off"><button type="submit" class="btn btn-primary">Otsi</button></form></section>';
     h += '<section class="hcards">' + cards.join('') + '</section>';
-    h += '<section class="hgrid2"><article class="card hinfo"><h2>Uued valimised ja vahetulemused</h2><p class="muted">Loo olemasolevate valimiste põhjal uued (nt Riigikogu 2027), sisesta valimisõhtul laekuvaid vahetulemusi ja võrdle hetkeseise. Andmed jäävad sinu brauserisse; faili saab alla laadida.</p><div><a class="btn" href="#valimised">Ava valimiste haldus</a></div></article>' +
+    h += '<section class="hgrid2">' + (editOn() ? '' : '<article class="card hinfo"><h2>Hääled on muudetavad</h2><p class="muted">Lülita lehe ülaosas sisse „Muutmine“, et muuta erakondade ja kandidaatide hääli, luua uusi valimisi (nt Riigikogu 2027) ja salvestada vahetulemusi. Vaikimisi näitab leht ametlikke tulemusi.</p><div><button type="button" class="btn" data-vedit>Lülita muutmine sisse</button></div></article>') + '<article class="card hinfo edit-only"><h2>Uued valimised ja vahetulemused</h2><p class="muted">Loo olemasolevate valimiste põhjal uued (nt Riigikogu 2027), sisesta valimisõhtul laekuvaid vahetulemusi ja võrdle hetkeseise. Andmed jäävad sinu brauserisse; faili saab alla laadida.</p><div><a class="btn" href="#valimised">Ava valimiste haldus</a></div></article>' +
       '<article class="card hinfo"><h2>Kandidaatide ajalugu</h2><p class="muted">Iga kandidaadi kõik kandideerimised ajalises järjekorras: Riigikogu, kohalikud ja Europarlament, nimekirja koht, hääled ja osakaalud. Sama nimega isikud eristatakse sünniaja järgi.</p><div><a class="btn" href="#kandidaadid">Ava kandidaatide otsing</a></div></article></section>';
     main.innerHTML = h;
   }
@@ -66,6 +66,10 @@
   var NM = { type: 'rk', base: '', votes: 'zero', file: null, msg: '' };
   function renderManage() {
     var main = byId('manageMain');
+    if (!editOn()) {
+      main.innerHTML = '<div class="card hinfo" style="margin-top:20px;max-width:60ch"><h2>Muutmine on väljas</h2><p class="muted">Uute valimiste lisamine ja vahetulemuste haldamine on muutmise režiimis. Lülita lehe ülaosas sisse „Muutmine“.</p><div><button type="button" class="btn btn-primary" data-vedit>Lülita muutmine sisse</button></div></div>';
+      return;
+    }
     main.innerHTML = loadingHTML();
     Promise.all([userReady, Store.all('sn')]).then(function (res) {
       var snaps = (res[1] || []).sort(function (a, b) { return a.time < b.time ? 1 : -1; });

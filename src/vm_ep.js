@@ -38,7 +38,7 @@
     var n = E ? changedCount(E) : 0;
     tools.innerHTML = '<label class="vh" for="epSel">Valimised</label><select class="inp yearsel" id="epSel" data-vsel="ep">' + opts + '</select>' +
       (E ? '<span class="badge' + (n ? ' is-mod' : '') + '">' + (n ? 'Muudetud: ' + plural(n, 'kirje', 'kirjet') : (E.user ? 'Oma andmed' : 'Ametlikud hääled')) + '</span>' +
-        '<button type="button" class="btn" data-vep="reset"' + (n ? '' : ' disabled') + '>Taasta hääled</button><button type="button" class="btn" data-vep="zero">Nulli kõik hääled</button><button type="button" class="btn" data-vsnaps="ep">Vahetulemused</button>' : '');
+        (editOn() ? '<button type="button" class="btn" data-vep="reset"' + (n ? '' : ' disabled') + '>Taasta hääled</button><button type="button" class="btn" data-vep="zero">Nulli kõik hääled</button><button type="button" class="btn" data-vsnaps="ep">Vahetulemused</button>' : '') : '');
     if (ES.loading) { main.innerHTML = loadingHTML('Laadin ' + elLabel(ES.id) + ' andmeid…'); return; }
     if (ES.err) { main.innerHTML = errorHTML(ES.err); return; }
     if (!E) { main.innerHTML = ''; return; }
@@ -80,24 +80,25 @@
     var r = E.res, fk = 'el';
     var rows = frozen(fk, r.lists.slice().sort(function (a, b) { return b.votes - a.votes; }), function (x) { return x.l; });
     var off = new Map(); E.cands.forEach(function (c) { if (c.el) off.set(c.list, (off.get(c.list) || 0) + 1); });
-    var ho = hasOff(E);
-    var h = '<div class="card vparty-card" data-vfrz="' + fk + '"><div class="ptools"><span>Erakondade ja üksikkandidaatide hääled. Mandaadid jaotatakse d’Hondti meetodil üle Eesti; künnist ei ole. ± jagab muutuse kandidaatidele proportsionaalselt. ' + frzNote(fk) + '</span>' + stepperHTML() + '</div><div class="scroll-x"><table class="tbl ptable epl"><colgroup><col><col style="width:6.6em"><col style="width:4em"><col style="width:4.8em">' + (ho ? '<col style="width:4.4em">' : '') + '<col style="width:13.6em"></colgroup><thead><tr><th>Nimekiri</th><th class="num">Hääli</th><th class="num">%</th><th class="num">Kohti</th>' + (ho ? '<th class="num" title="Ametlik tulemus">Ametlik</th>' : '') + '<th>Hääled ±</th></tr></thead><tbody>';
+    var ho = hasOff(E), ed = editOn();
+    var h = '<div class="card vparty-card" data-vfrz="' + fk + '"><div class="ptools"><span>Erakondade ja üksikkandidaatide hääled. Mandaadid jaotatakse d’Hondti meetodil üle Eesti; künnist ei ole.' + (ed ? ' ± jagab muutuse kandidaatidele proportsionaalselt. ' + frzNote(fk) : '') + '</span>' + stepperHTML() + '</div><div class="scroll-x"><table class="tbl ptable epl"><colgroup><col><col style="width:6.6em"><col style="width:4em"><col style="width:4.8em">' + (ho ? '<col style="width:4.4em">' : '') + (ed ? '<col style="width:13.6em">' : '') + '</colgroup><thead><tr><th>Nimekiri</th><th class="num">Hääli</th><th class="num">%</th><th class="num">Kohti</th>' + (ho ? '<th class="num" title="Ametlik tulemus">Ametlik</th>' : '') + (ed ? '<th>Hääled ±</th>' : '') + '</tr></thead><tbody>';
     rows.forEach(function (x) {
       var info = listInfo(E, x.l), L = E.lists[x.l], o = off.get(x.l) || 0, dlt = x.seats - o;
       h += '<tr style="--pc:' + info.color + '"' + (x.seats ? '' : ' class="below"') + '><td><div class="pname"><span class="sw"></span><div><button type="button" class="plink" data-velist="' + x.l + '">' + esc(info.name) + '</button> ' + KIND_TAG[L.kind] + '</div></div></td><td class="num">' + nf0.format(x.votes) + '</td><td class="num">' + nf1.format(x.share * 100) + '</td>' +
-        '<td class="num"><span class="total">' + x.seats + '</span>' + (ho && dlt ? '<span class="delta ' + (dlt > 0 ? 'up' : 'down') + '">' + (dlt > 0 ? '+' : '−') + Math.abs(dlt) + '</span>' : '') + '</td>' + (ho ? '<td class="num muted">' + o + '</td>' : '') + '<td>' + adjHTML('ep:' + x.l, info.short, x.votes, epListBase(E, x.l)) + '</td></tr>';
+        '<td class="num"><span class="total">' + x.seats + '</span>' + (ho && dlt ? '<span class="delta ' + (dlt > 0 ? 'up' : 'down') + '">' + (dlt > 0 ? '+' : '−') + Math.abs(dlt) + '</span>' : '') + '</td>' + (ho ? '<td class="num muted">' + o + '</td>' : '') + (ed ? '<td>' + adjHTML('ep:' + x.l, info.short, x.votes, epListBase(E, x.l)) + '</td>' : '') + '</tr>';
     });
     var seats = r.lists.reduce(function (s, x) { return s + x.seats; }, 0), offT = 0; off.forEach(function (v) { offT += v; });
-    return h + '</tbody><tfoot><tr><td>Kokku</td><td class="num">' + nf0.format(r.T) + '</td><td class="num">100,0</td><td class="num">' + seats + '</td>' + (ho ? '<td class="num muted">' + offT + '</td>' : '') + '<td></td></tr></tfoot></table></div></div>';
+    return h + '</tbody><tfoot><tr><td>Kokku</td><td class="num">' + nf0.format(r.T) + '</td><td class="num">100,0</td><td class="num">' + seats + '</td>' + (ho ? '<td class="num muted">' + offT + '</td>' : '') + (ed ? '<td></td>' : '') + '</tr></tfoot></table></div></div>';
   }
   function epCandsHTML(E) {
     var r = E.res;
-    var h = '<p class="panel-intro">' + (E.closed ? 'Neil valimistel olid nimekirjad suletud: valija hääletas erakonna nimekirja poolt ja mandaadid said nimekirja järjekorras eespool olevad kandidaadid. Muuta saab nimekirjade hääli.' : 'Erakonna nimekirja kandidaadid reastatakse ümber saadud häälte järgi (võrdsuse korral nimekirjas eespool olev ettepoole) ja mandaadid saavad eespool olevad kandidaadid (EPVS § 61 lg 2). Muuda kandidaadi hääli väljal; erakonna nimekiri järjestub ümber, kui liigud väljalt edasi.') + '</p><div class="pblocks">';
+    var ed = editOn();
+    var h = '<p class="panel-intro">' + (E.closed ? 'Neil valimistel olid nimekirjad suletud: valija hääletas erakonna nimekirja poolt ja mandaadid said nimekirja järjekorras eespool olevad kandidaadid.' + (ed ? ' Muuta saab nimekirjade hääli.' : '') : 'Erakonna nimekirja kandidaadid reastatakse ümber saadud häälte järgi (võrdsuse korral nimekirjas eespool olev ettepoole) ja mandaadid saavad eespool olevad kandidaadid (EPVS § 61 lg 2).' + (ed ? ' Muuda kandidaadi hääli väljal; erakonna nimekiri järjestub ümber, kui liigud väljalt edasi.' : '')) + '</p><div class="pblocks">';
     r.lists.slice().sort(function (a, b) { return b.votes - a.votes; }).forEach(function (x) {
       var info = listInfo(E, x.l), L = E.lists[x.l], fk = 'ec:' + x.l;
       var ord = frozen(fk, r.order[x.l], function (ci) { return ci; });
       h += '<article class="pblock" style="--pc:' + info.color + '" data-vfrz="' + fk + '"><div class="pblock-head"><div class="pname"><span class="sw"></span><b>' + esc(info.name) + '</b> ' + KIND_TAG[L.kind] + '</div><div class="pscale">' +
-        (E.closed ? '<label class="cvotes"><span class="lbl">Nimekirja hääled</span><input type="text" inputmode="numeric" id="elv-' + x.l + '" data-elv="' + x.l + '" value="' + L.lvotes + '"></label>' : '') + '</div>' +
+        (E.closed && ed ? '<label class="cvotes"><span class="lbl">Nimekirja hääled</span><input type="text" inputmode="numeric" id="elv-' + x.l + '" data-elv="' + x.l + '" value="' + L.lvotes + '"></label>' : '') + '</div>' +
         '<div class="pcalc">' + nf0.format(x.votes) + ' häält (' + pct1(x.share) + ') · ' + plural(x.seats, 'mandaat', 'mandaati') + '</div></div><ol class="clist">';
       ord.forEach(function (ci) {
         var c = E.cands[ci], el = r.el.has(ci), sk = r.subs[x.l].indexOf(ci);
@@ -105,7 +106,7 @@
         if (hasOff(E) && el && !c.el) st += '<span class="tag warn-tag">ametlikult mitte</span>';
         if (hasOff(E) && !el && c.el) st += '<span class="tag warn-tag">ametlikult valitud</span>';
         h += '<li class="crow"><span class="numbox' + (el ? ' is-el' : '') + '"' + (E.closed ? ' title="Koht nimekirjas"' : '') + '>' + (E.closed ? c.pos : c.nr) + '</span><div class="cmain"><button type="button" class="cname" data-ec="' + ci + '">' + esc(c.name) + '</button><span class="cmeta">' + (L.kind === 'I' ? 'üksikkandidaat' : 'nimekirjas ' + (c.pos || '–') + '.') + (c.birth ? ' · s. ' + esc(fmtBirth(c.birth)) : '') + '</span></div>' +
-          (E.closed ? '<div class="cvotes"><span class="lbl">Koht</span><b>' + (c.pos || '–') + '.</b></div>' : '<label class="cvotes"><span class="lbl">Hääled</span><input type="text" inputmode="numeric" id="ev-' + ci + '" data-ev="' + ci + '" value="' + c.votes + '" aria-label="' + esc(c.name) + ' hääled"></label>') +
+          (E.closed ? '<div class="cvotes"><span class="lbl">Koht</span><b>' + (c.pos || '–') + '.</b></div>' : ed ? '<label class="cvotes"><span class="lbl">Hääled</span><input type="text" inputmode="numeric" id="ev-' + ci + '" data-ev="' + ci + '" value="' + c.votes + '" aria-label="' + esc(c.name) + ' hääled"></label>' : '<div class="cvotes"><span class="lbl">Hääled</span><b class="vstatic">' + nf0.format(c.votes) + '</b></div>') +
           '<div class="cq"><span class="qv">' + (E.closed ? '–' : pct1(x.votes ? c.votes / x.votes : 0)) + '</span><span class="sub">' + (E.closed ? '' : 'nimekirja häältest') + '</span></div><div class="cst">' + st + '</div></li>';
       });
       h += '</ol></article>';

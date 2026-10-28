@@ -112,7 +112,7 @@
     var n = E ? changedCount(E) : 0;
     tools.innerHTML = '<label class="vh" for="kovSel">Valimised</label><select class="inp yearsel" id="kovSel" data-vsel="kov">' + opts + '</select>' +
       (E ? '<span class="badge' + (n ? ' is-mod' : '') + '">' + (n ? 'Muudetud: ' + plural(n, 'kandidaat', 'kandidaati') : (E.user ? 'Oma andmed' : 'Ametlikud hääled')) + '</span>' +
-        '<button type="button" class="btn" data-vkov="reset"' + (n ? '' : ' disabled') + '>Taasta hääled</button><button type="button" class="btn" data-vkov="zero">Nulli kõik hääled</button><button type="button" class="btn" data-vsnaps="kov">Vahetulemused</button>' : '');
+        (editOn() ? '<button type="button" class="btn" data-vkov="reset"' + (n ? '' : ' disabled') + '>Taasta hääled</button><button type="button" class="btn" data-vkov="zero">Nulli kõik hääled</button><button type="button" class="btn" data-vsnaps="kov">Vahetulemused</button>' : '') : '');
     if (KS.loading) { main.innerHTML = loadingHTML('Laadin ' + elLabel(KS.id) + ' andmeid…'); return; }
     if (KS.err) { main.innerHTML = errorHTML(KS.err); return; }
     if (!E) { main.innerHTML = ''; return; }
@@ -151,14 +151,15 @@
       (E.partial ? '<div class="warn">Andmed on osalised: ' + esc(E.notes || 'osa omavalitsusi või kandidaate puudub.') + '</div>' : '') + '</div>';
     var fk = 'kn', ho = hasOff(E);
     var ord = frozen(fk, rows, function (r) { return r.k; });
-    h += '<div class="card vparty-card" data-vfrz="' + fk + '"><div class="ptools"><span>Erakondade, valimisliitude ja üksikkandidaatide hääled kokku. Mandaadid jaotatakse igas omavalitsuses eraldi (5% künnis kehtib omavalitsuse piires). ± muudab rühma hääli kõigis omavalitsustes; nimi avab tulemused omavalitsuste kaupa. ' + frzNote(fk) + '</span>' + stepperHTML() + '</div>' +
-      '<div class="scroll-x"><table class="tbl ptable kovnat"><colgroup><col><col style="width:6.6em"><col style="width:4em"><col style="width:4.4em">' + (ho ? '<col style="width:4.6em">' : '') + '<col style="width:5.2em"><col style="width:4.6em"><col style="width:13.6em"></colgroup><thead><tr><th>Erakond / rühm</th><th class="num">Hääli</th><th class="num">%</th><th class="num" title="Mudeli järgi jaotatud volikogu kohti">Kohti</th>' + (ho ? '<th class="num" title="Ametlik tulemus">Ametlik</th>' : '') + '<th class="num" title="Volikogusid, kuhu pääses vähemalt üks liige">Volikogus</th><th class="num" title="Volikogusid, kus on üksi enamus">Enamus</th><th>Hääled ±</th></tr></thead><tbody>';
+    var ed = editOn();
+    h += '<div class="card vparty-card" data-vfrz="' + fk + '"><div class="ptools"><span>Erakondade, valimisliitude ja üksikkandidaatide hääled kokku. Mandaadid jaotatakse igas omavalitsuses eraldi (5% künnis kehtib omavalitsuse piires). ' + (ed ? '± muudab rühma hääli kõigis omavalitsustes; nimi' : 'Nimi') + ' avab tulemused omavalitsuste kaupa. ' + (ed ? frzNote(fk) : '') + '</span>' + stepperHTML() + '</div>' +
+      '<div class="scroll-x"><table class="tbl ptable kovnat"><colgroup><col><col style="width:6.6em"><col style="width:4em"><col style="width:4.4em">' + (ho ? '<col style="width:4.6em">' : '') + '<col style="width:5.2em"><col style="width:4.6em">' + (ed ? '<col style="width:13.6em">' : '') + '</colgroup><thead><tr><th>Erakond / rühm</th><th class="num">Hääli</th><th class="num">%</th><th class="num" title="Mudeli järgi jaotatud volikogu kohti">Kohti</th>' + (ho ? '<th class="num" title="Ametlik tulemus">Ametlik</th>' : '') + '<th class="num" title="Volikogusid, kuhu pääses vähemalt üks liige">Volikogus</th><th class="num" title="Volikogusid, kus on üksi enamus">Enamus</th>' + (ed ? '<th>Hääled ±</th>' : '') + '</tr></thead><tbody>';
     ord.forEach(function (r) {
       var dlt = r.seats - r.off;
       h += '<tr style="--pc:' + r.color + '"><td><div class="pname"><span class="sw"></span><button type="button" class="plink" data-vkzp="' + r.k + '">' + esc(r.name) + '</button></div></td><td class="num">' + nf0.format(r.votes) + '</td><td class="num">' + nf1.format(nat.T ? r.votes / nat.T * 100 : 0) + '</td>' +
-        '<td class="num"><span class="total">' + nf0.format(r.seats) + '</span>' + (ho && dlt ? '<span class="delta ' + (dlt > 0 ? 'up' : 'down') + '">' + (dlt > 0 ? '+' : '−') + Math.abs(dlt) + '</span>' : '') + '</td>' + (ho ? '<td class="num muted">' + nf0.format(r.off) + '</td>' : '') + '<td class="num">' + (r.councils || '·') + '</td><td class="num">' + (r.maj || '·') + '</td><td>' + adjHTML('kn:' + r.k, r.short, r.votes, r.v0) + '</td></tr>';
+        '<td class="num"><span class="total">' + nf0.format(r.seats) + '</span>' + (ho && dlt ? '<span class="delta ' + (dlt > 0 ? 'up' : 'down') + '">' + (dlt > 0 ? '+' : '−') + Math.abs(dlt) + '</span>' : '') + '</td>' + (ho ? '<td class="num muted">' + nf0.format(r.off) + '</td>' : '') + '<td class="num">' + (r.councils || '·') + '</td><td class="num">' + (r.maj || '·') + '</td>' + (ed ? '<td>' + adjHTML('kn:' + r.k, r.short, r.votes, r.v0) + '</td>' : '') + '</tr>';
     });
-    h += '</tbody><tfoot><tr><td>Kokku</td><td class="num">' + nf0.format(nat.T) + '</td><td class="num">100,0</td><td class="num">' + nf0.format(rows.reduce(function (s, r) { return s + r.seats; }, 0)) + '</td>' + (ho ? '<td class="num muted">' + nf0.format(off) + '</td>' : '') + '<td></td><td></td><td></td></tr></tfoot></table></div></div></div>';
+    h += '</tbody><tfoot><tr><td>Kokku</td><td class="num">' + nf0.format(nat.T) + '</td><td class="num">100,0</td><td class="num">' + nf0.format(rows.reduce(function (s, r) { return s + r.seats; }, 0)) + '</td>' + (ho ? '<td class="num muted">' + nf0.format(off) + '</td>' : '') + '<td></td><td></td>' + (ed ? '<td></td>' : '') + '</tr></tfoot></table></div></div></div>';
     if (KS.zp) h += kovGroupZoomHTML(E, KS.zp);
     h += kovUnitsTableHTML(E);
     return h;
@@ -279,14 +280,14 @@
     var rows = Array.from(r.lists.values()).sort(function (a, b) { return b.votes - a.votes; });
     var fz = FREEZE.get(fk);
     rows = frozen(fk, rows, function (x) { return x.l; });
-    var tall = r.tallinn, ho = hasOff(E);
-    var h = '<div class="card vparty-card" data-vfrz="' + fk + '"><div class="ptools"><span>Nimekirjade hääled omavalitsuses. ± jagab muutuse nimekirja kandidaatidele proportsionaalselt. ' + frzNote(fk) + '</span>' + stepperHTML() + '</div><div class="scroll-x"><table class="tbl ptable kovlists"><colgroup><col><col style="width:6.2em"><col style="width:4em"><col style="width:3.6em"><col style="width:4.2em">' + (tall ? '<col style="width:3.8em">' : '') + '<col style="width:4.8em">' + (ho ? '<col style="width:4.2em">' : '') + '<col style="width:13.6em"></colgroup><thead><tr><th>Nimekiri</th><th class="num">Hääli</th><th class="num">%</th><th class="num" title="Isikumandaadid (lihtkvoot)">Isiku</th><th class="num" title="' + (tall ? 'Ringkonnamandaadid' : 'Nimekirjamandaadid') + '">' + (tall ? 'Ringk.' : 'Nimek.') + '</th>' + (tall ? '<th class="num" title="Kompensatsioonimandaadid">Komp.</th>' : '') + '<th class="num">Kokku</th>' + (ho ? '<th class="num" title="Ametlik tulemus">Ametlik</th>' : '') + '<th>Hääled ±</th></tr></thead><tbody>';
+    var tall = r.tallinn, ho = hasOff(E), ed = editOn();
+    var h = '<div class="card vparty-card" data-vfrz="' + fk + '"><div class="ptools"><span>Nimekirjade hääled omavalitsuses' + (ed ? '. ± jagab muutuse nimekirja kandidaatidele proportsionaalselt. ' + frzNote(fk) : '; nimi viib nimekirja kandidaatideni.') + '</span>' + stepperHTML() + '</div><div class="scroll-x"><table class="tbl ptable kovlists"><colgroup><col><col style="width:6.2em"><col style="width:4em"><col style="width:3.6em"><col style="width:4.2em">' + (tall ? '<col style="width:3.8em">' : '') + '<col style="width:4.8em">' + (ho ? '<col style="width:4.2em">' : '') + (ed ? '<col style="width:13.6em">' : '') + '</colgroup><thead><tr><th>Nimekiri</th><th class="num">Hääli</th><th class="num">%</th><th class="num" title="Isikumandaadid (lihtkvoot)">Isiku</th><th class="num" title="' + (tall ? 'Ringkonnamandaadid' : 'Nimekirjamandaadid') + '">' + (tall ? 'Ringk.' : 'Nimek.') + '</th>' + (tall ? '<th class="num" title="Kompensatsioonimandaadid">Komp.</th>' : '') + '<th class="num">Kokku</th>' + (ho ? '<th class="num" title="Ametlik tulemus">Ametlik</th>' : '') + (ed ? '<th>Hääled ±</th>' : '') + '</tr></thead><tbody>';
     var thrDone = false, sep = fz ? fz.sep : -1;
     rows.forEach(function (x, idx) {
       var info = listInfo(E, x.l), L = E.lists[x.l];
       if (!thrDone && (fz ? idx === sep : !x.q && L.kind !== 'I')) {
         thrDone = true;
-        h += '<tr class="thr"><td colspan="' + ((tall ? 9 : 8) - (ho ? 0 : 1)) + '" class="small muted">5% künnis: ' + nf0.format(Math.ceil(r.T * r.thr / 100)) + ' häält (nimekirjamandaate saavad ainult künnise ületanud erakonnad ja valimisliidud)</td></tr>';
+        h += '<tr class="thr"><td colspan="' + ((tall ? 9 : 8) - (ho ? 0 : 1) - (ed ? 0 : 1)) + '" class="small muted">5% künnis: ' + nf0.format(Math.ceil(r.T * r.thr / 100)) + ' häält (nimekirjamandaate saavad ainult künnise ületanud erakonnad ja valimisliidud)</td></tr>';
       }
       var off = E.offList.get(x.l) || 0, dlt = x.seats - off;
       var base = 0; L.cands.forEach(function (ci) { base += E.cands[ci].v0; });
@@ -294,11 +295,11 @@
         '<td class="num">' + nf0.format(x.votes) + '</td><td class="num">' + (x.q || L.kind === 'I' ? nf1.format(x.share * 100) : '<span class="pct-below" title="alla 5% künnise">' + nf1.format(x.share * 100) + '</span>') + '</td>' +
         '<td class="num">' + (x.t[1] || '·') + '</td><td class="num">' + ((x.t[2] + x.t[4]) || '·') + '</td>' + (tall ? '<td class="num">' + (x.t[3] || '·') + '</td>' : '') +
         '<td class="num"><span class="total">' + x.seats + '</span>' + (ho && dlt ? '<span class="delta ' + (dlt > 0 ? 'up' : 'down') + '">' + (dlt > 0 ? '+' : '−') + Math.abs(dlt) + '</span>' : '') + '</td>' + (ho ? '<td class="num muted">' + off + '</td>' : '') +
-        '<td>' + (L.kind === 'I' ? '' : adjHTML('ku:' + u + ':' + x.l, info.short, x.votes, base)) + '</td></tr>';
+        (ed ? '<td>' + (L.kind === 'I' ? '' : adjHTML('ku:' + u + ':' + x.l, info.short, x.votes, base)) + '</td>' : '') + '</tr>';
     });
     var offT = 0; U.cands.forEach(function (ci) { if (E.cands[ci].el) offT++; });
     var seatsT = 0; r.el.forEach(function () { seatsT++; });
-    h += '</tbody><tfoot><tr><td>Kokku</td><td class="num">' + nf0.format(r.T) + '</td><td class="num">100,0</td><td></td><td></td>' + (tall ? '<td></td>' : '') + '<td class="num">' + seatsT + ' / ' + U.seats + '</td>' + (ho ? '<td class="num muted">' + offT + '</td>' : '') + '<td></td></tr></tfoot></table></div></div>';
+    h += '</tbody><tfoot><tr><td>Kokku</td><td class="num">' + nf0.format(r.T) + '</td><td class="num">100,0</td><td></td><td></td>' + (tall ? '<td></td>' : '') + '<td class="num">' + seatsT + ' / ' + U.seats + '</td>' + (ho ? '<td class="num muted">' + offT + '</td>' : '') + (ed ? '<td></td>' : '') + '</tr></tfoot></table></div></div>';
     return h;
   }
   function kovDistrictHTML(E, u, dnr) {
@@ -331,7 +332,7 @@
         if (!t && subsU.has(ci)) st += '<span class="chip chip-sub" title="Ülelinnalise nimekirja asendusliige">' + subsU.get(ci) + '. ülelinn.</span>';
         var qq = D.T > 0 ? c.votes * D.M / D.T : 0;
         h += '<li class="crow kc-row"><span class="numbox' + (t ? ' is-el' : '') + '">' + c.nr + '</span><div class="cmain"><button type="button" class="cname" data-kc="' + ci + '">' + esc(c.name) + '</button><span class="cmeta">' + (L.kind === 'I' ? 'üksikkandidaat' : 'nimekirjas ' + (c.pos || '–') + '.' + (c.upos ? ', ülelinnalises ' + c.upos + '.' : '')) + (c.birth ? ' · s. ' + esc(fmtBirth(c.birth)) : '') + '</span></div>' +
-          '<label class="cvotes"><span class="lbl">Hääled</span><input type="text" inputmode="numeric" id="kv-' + ci + '" data-kv="' + ci + '" value="' + c.votes + '" aria-label="' + esc(c.name) + ' hääled"></label>' +
+          (editOn() ? '<label class="cvotes"><span class="lbl">Hääled</span><input type="text" inputmode="numeric" id="kv-' + ci + '" data-kv="' + ci + '" value="' + c.votes + '" aria-label="' + esc(c.name) + ' hääled"></label>' : '<div class="cvotes"><span class="lbl">Hääled</span><b class="vstatic">' + nf0.format(c.votes) + '</b></div>') +
           '<div class="cq"><span class="qv">' + nf1.format(qq * 100) + '%</span><span class="sub">lihtkvoodist</span></div><div class="cst">' + st + '</div></li>';
       });
       h += '</ol></article>';

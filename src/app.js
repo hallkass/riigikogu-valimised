@@ -57,6 +57,7 @@
   // ---------- andmestikud: 2023 täielikult, varasemad valimised ajalooandmetest
   var HIST = RAW.hist || null; // { y: [aastad], e: { aasta: { date, valid, notes, d, p, c } } }
   var hparty = window.VMC.hparty;
+  function editOn() { return !!(window.VM && VM.editOn()); }
   function histModel(y) {
     var E = HIST.e[y];
     var minNr = E.p.map(function () { return Infinity; });
@@ -316,11 +317,12 @@
   }
   function renderPartyTable() {
     var showOff = isBase;
-    var cols = showOff ? 9 : 8;
-    byId('ptools').innerHTML = '<span>Muuda erakonna hääli kõigis ringkondades. Klõpsa erakonna nimel, et näha tulemust ringkondade ja kandidaatide kaupa. <span class="frz' + (freezeN ? '' : ' off') + '">Järjestus on muutmise ajaks lukus ja uueneb, kui liigud tabelist välja.</span></span>' + stepperHTML();
+    var cols = (showOff ? 9 : 8) - (editOn() ? 0 : 1);
+    var ed = editOn();
+    byId('ptools').innerHTML = ed ? '<span>Muuda erakonna hääli kõigis ringkondades. Klõpsa erakonna nimel, et näha tulemust ringkondade ja kandidaatide kaupa. <span class="frz' + (freezeN ? '' : ' off') + '">Järjestus on muutmise ajaks lukus ja uueneb, kui liigud tabelist välja.</span></span>' + stepperHTML() : '<span>Klõpsa erakonna nimel, et näha tulemust ringkondade ja kandidaatide kaupa.</span>';
     var rows = orderBy(res.parties.slice().sort(function (a, b) { return b.votes - a.votes; }), freezeN, function (r) { return r.id; });
-    var cg = '<colgroup><col><col style="width:6.4em"><col style="width:3.8em"><col style="width:3.6em"><col style="width:3.9em"><col style="width:3.9em"><col style="width:4.9em">' + (showOff ? '<col style="width:3.8em">' : '') + '<col style="width:13.6em"></colgroup>';
-    var h = cg + '<thead><tr><th>Erakond</th><th class="num">Hääli</th><th class="num">%</th><th class="num" title="Isikumandaadid">Isiku</th><th class="num" title="Ringkonnamandaadid">Ringk.</th><th class="num" title="Kompensatsioonimandaadid">Komp.</th><th class="num">Kokku</th>' + (showOff ? '<th class="num" title="' + baseYear + ' ametlik tulemus">' + baseYear + '</th>' : '') + '<th>Hääled ±</th></tr></thead><tbody>';
+    var cg = '<colgroup><col><col style="width:6.4em"><col style="width:3.8em"><col style="width:3.6em"><col style="width:3.9em"><col style="width:3.9em"><col style="width:4.9em">' + (showOff ? '<col style="width:3.8em">' : '') + (ed ? '<col style="width:13.6em">' : '') + '</colgroup>';
+    var h = cg + '<thead><tr><th>Erakond</th><th class="num">Hääli</th><th class="num">%</th><th class="num" title="Isikumandaadid">Isiku</th><th class="num" title="Ringkonnamandaadid">Ringk.</th><th class="num" title="Kompensatsioonimandaadid">Komp.</th><th class="num">Kokku</th>' + (showOff ? '<th class="num" title="' + baseYear + ' ametlik tulemus">' + baseYear + '</th>' : '') + (ed ? '<th>Hääled ±</th>' : '') + '</tr></thead><tbody>';
     var thrDone = false;
     rows.forEach(function (r, idx) {
       var p = partyOf(r.id);
@@ -333,15 +335,16 @@
         '<td class="num">' + nf0.format(r.votes) + '</td><td class="num">' + (r.qualifies ? nf1.format(r.share * 100) : '<span class="pct-below" title="alla 5% künnise">' + nf1.format(r.share * 100) + '</span>') + '</td>' +
         '<td class="num">' + (r.personal || '·') + '</td><td class="num">' + (r.district || '·') + '</td><td class="num">' + (r.comp || '·') + '</td>' +
         '<td class="num"><span class="total">' + r.total + '</span>' + (showOff && dlt ? '<span class="delta ' + (dlt > 0 ? 'up' : 'down') + '">' + (dlt > 0 ? '+' : '−') + Math.abs(dlt) + '</span>' : '') + '</td>' +
-        (showOff ? '<td class="num muted">' + off + '</td>' : '') + '<td>' + adjHTML('n', r.id, null) + '</td></tr>';
+        (showOff ? '<td class="num muted">' + off + '</td>' : '') + (ed ? '<td>' + adjHTML('n', r.id, null) + '</td>' : '') + '</tr>';
     });
     var hasInd = model.candidates.some(function (c) { return !c.party; });
     if (hasInd) {
       var offI = OFF_SEATS.get(0) || 0;
-      h += '<tr style="--pc:' + IND.color + '"><td><div class="pname"><span class="sw"></span><div class="pfull">Üksikkandidaadid</div></div></td><td class="num">' + nf0.format(res.indVotes) + '</td><td class="num">' + nf1.format(res.N ? res.indVotes / res.N * 100 : 0) + '</td><td class="num">' + (res.indElected || '·') + '</td><td class="num">·</td><td class="num">·</td><td class="num"><span class="total">' + res.indElected + '</span></td>' + (showOff ? '<td class="num muted">' + offI + '</td>' : '') + '<td></td></tr>';
+      h += '<tr style="--pc:' + IND.color + '"><td><div class="pname"><span class="sw"></span><div class="pfull">Üksikkandidaadid</div></div></td><td class="num">' + nf0.format(res.indVotes) + '</td><td class="num">' + nf1.format(res.N ? res.indVotes / res.N * 100 : 0) + '</td><td class="num">' + (res.indElected || '·') + '</td><td class="num">·</td><td class="num">·</td><td class="num"><span class="total">' + res.indElected + '</span></td>' + (showOff ? '<td class="num muted">' + offI + '</td>' : '') + (ed ? '<td></td>' : '') + '</tr>';
     }
-    h += '</tbody><tfoot><tr><td>Kokku</td><td class="num">' + nf0.format(res.N) + '</td><td class="num">100,0</td><td class="num">' + sumBy('personal') + '</td><td class="num">' + sumBy('district') + '</td><td class="num">' + sumBy('comp') + '</td><td class="num">' + res.elected.length + '</td>' + (showOff ? '<td class="num muted">101</td>' : '') + '<td></td></tr></tfoot>';
+    h += '</tbody><tfoot><tr><td>Kokku</td><td class="num">' + nf0.format(res.N) + '</td><td class="num">100,0</td><td class="num">' + sumBy('personal') + '</td><td class="num">' + sumBy('district') + '</td><td class="num">' + sumBy('comp') + '</td><td class="num">' + res.elected.length + '</td>' + (showOff ? '<td class="num muted">101</td>' : '') + (ed ? '<td></td>' : '') + '</tr></tfoot>';
     byId('ptable').innerHTML = h;
+    byId('ptable').classList.toggle('ro', !ed);
     function sumBy(k) { return res.parties.reduce(function (a, p) { return a + p[k]; }, 0) + (k === 'personal' ? res.indElected : 0); }
   }
 
@@ -430,21 +433,23 @@
     var d = distMap.get(state.district);
     var dr = res.districts.filter(function (x) { return x.nr === d.nr; })[0];
     var T = dr ? dr.T : 0;
-    var h = '<div class="ptools"><span>Erakondade hääled ringkonnas. Muutus jaguneb erakonna kandidaatidele proportsionaalselt; erakonna nimi avab süvavaate. <span class="frz' + (freezeD && freezeDKey === d.nr ? '' : ' off') + '">Järjestus on muutmise ajaks lukus ja uueneb, kui liigud tabelist välja.</span></span>' + stepperHTML() + '</div>' +
-      '<div class="scroll-x"><table class="tbl dptable"><colgroup><col><col style="width:6.4em"><col style="width:4em"><col style="width:5.8em"><col style="width:9.5em"><col style="width:13.6em"></colgroup><thead><tr><th>Erakond</th><th class="num">Hääli</th><th class="num">%</th><th class="num" title="Erakonna hääled lihtkvootides">Lihtkvoote</th><th class="num" title="Ringkonnas saadud isiku- ja ringkonnamandaadid">Mandaate</th><th>Hääled ±</th></tr></thead><tbody>';
+    var ed = editOn();
+    var h = '<div class="ptools">' + (ed ? '<span>Erakondade hääled ringkonnas. Muutus jaguneb erakonna kandidaatidele proportsionaalselt; erakonna nimi avab süvavaate. <span class="frz' + (freezeD && freezeDKey === d.nr ? '' : ' off') + '">Järjestus on muutmise ajaks lukus ja uueneb, kui liigud tabelist välja.</span></span>' + stepperHTML() : '<span>Erakondade hääled ringkonnas; erakonna nimi avab süvavaate.</span>') + '</div>' +
+      '<div class="scroll-x"><table class="tbl dptable"><colgroup><col><col style="width:6.4em"><col style="width:4em"><col style="width:5.8em"><col style="width:9.5em">' + (ed ? '<col style="width:13.6em">' : '') + '</colgroup><thead><tr><th>Erakond</th><th class="num">Hääli</th><th class="num">%</th><th class="num" title="Erakonna hääled lihtkvootides">Lihtkvoote</th><th class="num" title="Ringkonnas saadud isiku- ja ringkonnamandaadid">Mandaate</th>' + (ed ? '<th>Hääled ±</th>' : '') + '</tr></thead><tbody>';
     orderBy((dr ? dr.parties : []).slice(), freezeD && freezeDKey === d.nr ? freezeD : null, function (e) { return e.party; }).forEach(function (e) {
       var p = partyOf(e.party), mand;
       if (e.qualifies) mand = '<b>' + e.filled + '</b>' + (e.bonus ? '<sup title="Jääk vähemalt 75% lihtkvoodist">+</sup>' : '') + (e.filled < e.won ? ' <span class="tag warn-tag" title="Kandidaatidel alla 10% lihtkvoodist">' + (e.won - e.filled) + ' täitmata</span>' : '');
       else mand = e.personal ? '<b>' + e.personal + '</b> <span class="small muted">isiku-</span>' : '<span class="small muted">alla 5%</span>';
       h += '<tr style="--pc:' + p.color + '"><td><div class="pname"><span class="sw"></span><button type="button" class="plink" data-zp="' + e.party + '" data-zd="' + d.nr + '">' + esc(p.short) + '</button></div></td>' +
-        '<td class="num">' + nf0.format(e.votes) + '</td><td class="num">' + (T ? nf1.format(e.votes / T * 100) : '–') + '</td><td class="num">' + nf2.format(e.quotas) + '</td><td class="num">' + mand + '</td><td>' + adjHTML('d', e.party, d.nr) + '</td></tr>';
+        '<td class="num">' + nf0.format(e.votes) + '</td><td class="num">' + (T ? nf1.format(e.votes / T * 100) : '–') + '</td><td class="num">' + nf2.format(e.quotas) + '</td><td class="num">' + mand + '</td>' + (ed ? '<td>' + adjHTML('d', e.party, d.nr) + '</td>' : '') + '</tr>';
     });
     if (dr && dr.independents.length) {
       var iv = 0, ie = 0;
       dr.independents.forEach(function (nr) { var c = res.byNr.get(nr); if (c.counted) iv += c.votes; if (c.elected) ie++; });
-      h += '<tr style="--pc:' + IND.color + '"><td><div class="pname"><span class="sw"></span>Üksikkandidaadid</div></td><td class="num">' + nf0.format(iv) + '</td><td class="num">' + (T ? nf1.format(iv / T * 100) : '–') + '</td><td class="num">' + (T ? nf2.format(iv * d.mandates / T) : '–') + '</td><td class="num">' + (ie ? '<b>' + ie + '</b> <span class="small muted">isiku-</span>' : '·') + '</td><td></td></tr>';
+      h += '<tr style="--pc:' + IND.color + '"><td><div class="pname"><span class="sw"></span>Üksikkandidaadid</div></td><td class="num">' + nf0.format(iv) + '</td><td class="num">' + (T ? nf1.format(iv / T * 100) : '–') + '</td><td class="num">' + (T ? nf2.format(iv * d.mandates / T) : '–') + '</td><td class="num">' + (ie ? '<b>' + ie + '</b> <span class="small muted">isiku-</span>' : '·') + '</td>' + (ed ? '<td></td>' : '') + '</tr>';
     }
     box.innerHTML = h + '</tbody></table></div>';
+    var dpt = box.querySelector('.dptable'); if (dpt) dpt.classList.toggle('ro', !ed);
     if (fid && fid.indexOf('adj-d-') === 0) { var el = byId(fid) || byId(fid.replace(/-r$/, '-p')); if (el) el.focus({ preventScroll: true }); }
   }
   function updateBadge() {
@@ -489,14 +494,14 @@
   function renderVotes() {
     var el = byId('panel-haaled');
     var d = distMap.get(state.district);
-    var h = '<p class="panel-intro">Vali ringkond. Erakondade tabelis saad muuta erakonna hääli protsendi kaupa, allpool iga kandidaadi hääli eraldi. Tulemus arvutatakse kohe ümber. Kandidaadid on registreerimisnumbrite järjekorras nagu ringkonna koondnimekirjas; nimel klõpsates näed kandidaadi nimekirjakohti ja asendusliikmeid.</p>';
+    var h = '<p class="panel-intro">' + (editOn() ? 'Vali ringkond. Erakondade tabelis saad muuta erakonna hääli protsendi kaupa, allpool iga kandidaadi hääli eraldi. Tulemus arvutatakse kohe ümber. ' : 'Vali ringkond, et näha erakondade ja kandidaatide hääli ning mandaate. Hääli saab muuta, kui lülitad lehe ülaosas muutmise sisse. ') + 'Kandidaadid on registreerimisnumbrite järjekorras nagu ringkonna koondnimekirjas; nimel klõpsates näed kandidaadi nimekirjakohti ja asendusliikmeid.</p>';
     h += '<div class="dpicker" role="group" aria-label="Valimisringkond">' + model.districts.map(function (x) {
       var on = x.nr === d.nr;
       return '<button type="button" class="dpick' + (on ? ' is-on' : '') + '" data-district="' + x.nr + '" aria-pressed="' + on + '"><span class="dp-top"><span class="dp-nr">' + x.nr + '</span><span class="dp-m">' + plural(x.mandates, 'mandaat', 'mandaati') + '</span></span><span class="dp-name">' + esc(x.short || x.name) + '</span><span class="dp-bar" id="dpbar-' + x.nr + '"></span></button>';
     }).join('') + '</div>';
     h += '<section class="card dsec"><div class="dsec-h"><div class="dhead-t"><p class="eyebrow">Valimisringkond nr ' + d.nr + '</p><h2>' + esc(d.name) + '</h2></div><dl class="dstats" id="dstats"></dl></div><div id="dparties"></div></section>';
     h += '<div class="tools"><div class="grow"><label class="vh" for="q">Otsi kandidaati</label><input class="inp" id="q" type="search" placeholder="Otsi kandidaati nime või numbri järgi (kõik ringkonnad)" autocomplete="off"><div class="qres" id="qres" hidden></div></div>' +
-      '<button type="button" class="btn btn-sm btn-ghost" id="zeroDistrict">Nulli selle ringkonna hääled</button></div>';
+      (editOn() ? '<button type="button" class="btn btn-sm btn-ghost" id="zeroDistrict">Nulli selle ringkonna hääled</button>' : '') + '</div>';
     var groups = new Map();
     model.candidates.forEach(function (c) { if (c.district !== d.nr) return; var k = c.party || 0; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(c); });
     var keys = Array.from(groups.keys()).sort(function (a, b) { return partyOf(a).lot - partyOf(b).lot; });
@@ -515,7 +520,7 @@
       '<span class="numbox" id="nb-' + c.nr + '" title="Registreerimisnumber">' + c.nr + '</span>' +
       '<div class="cmain"><button type="button" class="cname" data-open="' + c.nr + '">' + esc(c.name) + '</button>' +
       '<span class="cmeta">' + (c.party ? 'ringkonnanimekirjas ' + c.distPos + '. · üleriigilises ' + c.natPos + '.' : 'üksikkandidaat') + '<span id="rk-' + c.nr + '"></span></span></div>' +
-      '<label class="cvotes" for="v-' + c.nr + '"><span class="lbl">Hääli</span><input id="v-' + c.nr + '" data-v="' + c.nr + '" type="number" min="0" step="1" inputmode="numeric" value="' + c.votes + '" aria-label="' + esc(c.name) + ', hääli"></label>' +
+      (editOn() ? '<label class="cvotes" for="v-' + c.nr + '"><span class="lbl">Hääli</span><input id="v-' + c.nr + '" data-v="' + c.nr + '" type="number" min="0" step="1" inputmode="numeric" value="' + c.votes + '" aria-label="' + esc(c.name) + ', hääli"></label>' : '<div class="cvotes"><span class="lbl">Hääli</span><b class="vstatic">' + nf0.format(c.votes) + '</b></div>') +
       '<div class="cq" id="cq-' + c.nr + '"></div><div class="cst" id="st-' + c.nr + '"></div></li>';
   }
   function stat(label, value, sub) { return '<div><dt>' + label + '</dt><dd>' + value + (sub ? '<small>' + sub + '</small>' : '') + '</dd></div>'; }
@@ -732,7 +737,8 @@
   }
   function renderAlloc() {
     var el = byId('panel-jaotus');
-    var h = '<p class="panel-intro">Siin on kogu arvutuskäik samm-sammult. Ringkondade mandaatide arvu ja valijate arvu saab muuta; ülejäänu järgneb häältest.</p>' + (oldRules() ? '<p class="znote">Arvutus kasutab ' + baseYear + '. aasta reegleid: ' + rulesText(baseYear) + '. Allolevad selgitused kirjeldavad kehtivat seadust.</p>' : '') + '<div class="steps">';
+    var ed = editOn();
+    var h = '<p class="panel-intro">Siin on kogu arvutuskäik samm-sammult.' + (ed ? ' Ringkondade mandaatide arvu ja valijate arvu saab muuta; ülejäänu järgneb häältest.' : '') + '</p>' + (oldRules() ? '<p class="znote">Arvutus kasutab ' + baseYear + '. aasta reegleid: ' + rulesText(baseYear) + '. Allolevad selgitused kirjeldavad kehtivat seadust.</p>' : '') + '<div class="steps">';
     // 1
     var s7 = seats7(model.districts.map(function (d) { return { nr: d.nr, v: d.voters || 0 }; }), 101);
     var diff7 = s7 && model.districts.some(function (d) { return s7.rows.get(d.nr).seats !== d.mandates; });
@@ -746,13 +752,13 @@
       var r7 = s7 ? s7.rows.get(dr.nr).seats : '–';
       tot.v += d.voters || 0; tot.m += d.mandates; tot.T += dr.T; tot.P += P; tot.D += D; tot.r += d.mandates - P - D;
       h += '<tr><td>' + dr.nr + '</td><td>' + esc(d.short || d.name) + '</td>' +
-        '<td class="num"><label class="vh" for="vv-' + dr.nr + '">Ringkonna ' + dr.nr + ' valijate arv</label><input class="inp" type="number" min="0" step="1" id="vv-' + dr.nr + '" data-vv="' + dr.nr + '" value="' + (d.voters || 0) + '"></td>' +
+        '<td class="num">' + (ed ? '<label class="vh" for="vv-' + dr.nr + '">Ringkonna ' + dr.nr + ' valijate arv</label><input class="inp" type="number" min="0" step="1" id="vv-' + dr.nr + '" data-vv="' + dr.nr + '" value="' + (d.voters || 0) + '">' : nf0.format(d.voters || 0)) + '</td>' +
         '<td class="num' + (s7 && r7 !== d.mandates ? '' : ' muted') + '">' + r7 + '</td>' +
-        '<td class="num"><label class="vh" for="m-' + dr.nr + '">Ringkonna ' + dr.nr + ' mandaadid</label><input class="inp" type="number" min="0" step="1" id="m-' + dr.nr + '" data-m="' + dr.nr + '" value="' + d.mandates + '"></td>' +
+        '<td class="num">' + (ed ? '<label class="vh" for="m-' + dr.nr + '">Ringkonna ' + dr.nr + ' mandaadid</label><input class="inp" type="number" min="0" step="1" id="m-' + dr.nr + '" data-m="' + dr.nr + '" value="' + d.mandates + '">' : '<b>' + d.mandates + '</b>') + '</td>' +
         '<td class="num">' + nf0.format(dr.T) + '</td><td class="num">' + (dr.M && dr.T ? nf2.format(dr.T / dr.M) : '–') + '</td><td class="num">' + P + '</td><td class="num">' + D + '</td><td class="num">' + (d.mandates - P - D) + '</td></tr>';
     });
     h += '</tbody><tfoot><tr><td></td><td>Kokku</td><td class="num">' + nf0.format(tot.v) + '</td><td class="num">' + (s7 ? 101 : '–') + '</td><td class="num">' + tot.m + '</td><td class="num">' + nf0.format(tot.T) + '</td><td></td><td class="num">' + tot.P + '</td><td class="num">' + tot.D + '</td><td class="num">' + tot.r + '</td></tr></tfoot></table></div>' +
-      '<div><button type="button" class="btn"' + (diff7 ? '' : ' disabled') + ' data-apply7>Rakenda § 7 jaotus</button> ' + (s7 ? '<span class="small muted">Valijaid ühe mandaadi kohta: ' + nf2.format(s7.V / 101) + '</span>' : '') + '</div></section>';
+      '<div>' + (ed ? '<button type="button" class="btn"' + (diff7 ? '' : ' disabled') + ' data-apply7>Rakenda § 7 jaotus</button> ' : '') + (s7 ? '<span class="small muted">Valijaid ühe mandaadi kohta: ' + nf2.format(s7.V / 101) + '</span>' : '') + '</div></section>';
 
     // 2
     var qp = res.parties.filter(function (p) { return p.qualifies; }).sort(function (a, b) { return b.votes - a.votes; });
@@ -1377,11 +1383,11 @@
         '<li>Üleriigilises asendusliikmete nimekirjas: <b>' + c.natSubRank + '.</b>' + (reach(c, 20) ? ' (≥ 5% lihtkvoodist, nimekirja järjekorras)' : ' (alla 5% lihtkvoodist, protsendi järgi)') + '</li>' +
         (lr ? '<li>Lisamandaatide tabelis (§ 76): ' + lr.rank + '.</li>' : '') + '</ul></div>';
     }
-    h += '<div style="display:grid;gap:8px"><label class="small"><input type="checkbox" id="outToggle" data-out="' + nr + '"' + (m.out ? ' checked' : '') + '> Kandidaat langes välja: suri või registreerimine tühistati (RKVS § 62 lg 9)</label>';
+    h += '<div style="display:grid;gap:8px">' + (editOn() ? '<label class="small"><input type="checkbox" id="outToggle" data-out="' + nr + '"' + (m.out ? ' checked' : '') + '> Kandidaat langes välja: suri või registreerimine tühistati (RKVS § 62 lg 9)</label>' : '');
     if (seatedNow.has(nr)) h += '<div><button type="button" class="btn btn-sm" data-leave="' + nr + '">Lahkub Riigikogust (volitused peatuvad või lõpevad)</button></div>';
     else if (sim.gone.has(nr)) h += '<div><button type="button" class="btn btn-sm" data-unleave="' + nr + '">Tühista lahkumine või loobumine</button></div>';
     else if (c.party && res.qualifies.get(c.party) && !c.elected && !c.out) h += '<div><button type="button" class="btn btn-sm" data-leave="' + nr + '">Loobub asendusliikme kohast</button></div>';
-    h += '</div></div><div class="dlg-f">' + (hasDetail() && DET.cand[nr] ? '<button type="button" class="btn" data-zc="' + nr + '">Hääled jaoskonniti</button>' : '') + (HIST ? '<button type="button" class="btn" data-hist="' + nr + '">Kandideerimise ajalugu</button>' : '') + '<button type="button" class="btn" data-jump="' + nr + '">Muuda hääli</button><button type="button" class="btn btn-primary" data-close>Valmis</button></div></div>';
+    h += '</div></div><div class="dlg-f">' + (hasDetail() && DET.cand[nr] ? '<button type="button" class="btn" data-zc="' + nr + '">Hääled jaoskonniti</button>' : '') + (HIST ? '<button type="button" class="btn" data-hist="' + nr + '">Kandideerimise ajalugu</button>' : '') + (editOn() ? '<button type="button" class="btn" data-jump="' + nr + '">Muuda hääli</button>' : '') + '<button type="button" class="btn btn-primary" data-close>Valmis</button></div></div>';
     dlg.innerHTML = h;
     if (!dlg.open) { try { dlg.showModal(); } catch (err) { dlg.setAttribute('open', ''); } }
   }
@@ -1442,6 +1448,7 @@
     if (ds.tab) { setTab(ds.tab); return; }
     if (ds.district) { state.district = +ds.district; renderVotes(); saveSoon(); return; }
     if (ds.step) { state.step = +ds.step; renderPartyTable(); renderDistrictParties(); saveSoon(); return; }
+    if ((ds.adj || ds.adjreset || ds.apply7 !== undefined || t.id === 'zeroDistrict' || t.id === 'btnZero' || t.id === 'btnReset' || t.id === 'btnData') && !editOn()) return;
     if (ds.adj) { freezeFor(ds.adj); scaleParty(+ds.pid, 1 + (+ds.f) * state.step / 100, ds.adj === 'd' ? state.district : null); return; }
     if (ds.adjreset) { freezeFor(ds.adjreset); resetParty(+ds.pid, ds.adjreset === 'd' ? state.district : null); return; }
     if (ds.zroot !== undefined) { state.zoom = { p: null, d: null, u: null, c: null }; goZoom(); return; }
@@ -1570,6 +1577,10 @@
     refreshYearSel: function (deleted) {
       if (deleted && userEl && userEl.id === deleted) { loadYear(baseYear); return; }
       byId('yearSelBox').innerHTML = yearSelHTML();
+    },
+    refreshEdit: function () {
+      freezeN = freezeD = freezeDKey = null;
+      renderSummary(); renderActive(true); refreshDialog();
     },
     onShow: function (t) { if (t && TABS.indexOf(t) >= 0 && t !== state.tab) setTab(t); else { renderSummary(); setTab(state.tab); } }
   };

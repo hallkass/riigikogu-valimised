@@ -96,7 +96,7 @@ mani.sort(key=lambda m: (m['type'], -(m['year'] or 0)))
 data = json.loads(rd('data2023.json'))
 data_js = json.dumps(data, ensure_ascii=False, separators=(',', ':')).replace('</', '<\\/')
 mani_js = json.dumps({'elections': mani}, ensure_ascii=False, separators=(',', ':')).replace('</', '<\\/')
-vm = '(function () {\n  \'use strict\';\n' + ''.join(rd(n) for n in ('vm_core.js', 'vm_kov.js', 'vm_ep.js', 'vm_hist.js', 'vm_pages.js', 'vm_events.js')) + '  showPage(page);\n})();\n'
+vm = '(function () {\n  \'use strict\';\n' + ''.join(rd(n) for n in ('vm_core.js', 'vm_kov.js', 'vm_ep.js', 'vm_hist.js', 'vm_pages.js', 'vm_events.js')) + '  showPage(page);\n  applyEditUI();\n})();\n'
 parts = {'/*__DATA__*/': data_js, '/*__MANIFEST__*/': mani_js, '/*__COMMON__*/': js_safe(rd('common.js'), 'common'),
          '/*__ENGINE__*/': js_safe(rd('engine.js'), 'engine'), '/*__ENGINE2__*/': js_safe(rd('engine2.js'), 'engine2'),
          '/*__VM__*/': js_safe(vm, 'vm'), '/*__APP__*/': js_safe(rd('app.js'), 'app')}

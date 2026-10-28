@@ -47,7 +47,7 @@
   function frzRerender() { if (page === 'kov') rerenderKovKeepFocus(); else if (page === 'ep') rerenderEpKeepFocus(); }
 
   document.addEventListener('click', function (ev) {
-    var t = ev.target.closest('[data-vktab],[data-vkzp],[data-vkunit],[data-vkd],[data-vkl],[data-kc],[data-vkov],[data-vadj],[data-vadjreset],[data-vstep],[data-vsnaps],[data-vsnapsave],[data-vsnapopen],[data-vsnapdl],[data-vsnapdel],[data-vsnapimport],[data-vsnapgo],[data-vclose],[data-vetab],[data-velist],[data-ec],[data-vep],[data-vhf],[data-vhnk],[data-vhpk],[data-vhist],[data-vhunlink],[data-vhlinkadd],[data-vhlinkdel],[data-vhctxall],[data-vhopen],[data-vopen],[data-vnew],[data-vudl],[data-vudel],[data-vdlfile]');
+    var t = ev.target.closest('[data-vktab],[data-vkzp],[data-vkunit],[data-vkd],[data-vkl],[data-kc],[data-vkov],[data-vadj],[data-vadjreset],[data-vstep],[data-vsnaps],[data-vsnapsave],[data-vsnapopen],[data-vsnapdl],[data-vsnapdel],[data-vsnapimport],[data-vsnapgo],[data-vclose],[data-vetab],[data-velist],[data-ec],[data-vep],[data-vhf],[data-vhnk],[data-vhpk],[data-vhist],[data-vhunlink],[data-vhlinkadd],[data-vhlinkdel],[data-vhctxall],[data-vhopen],[data-vopen],[data-vnew],[data-vudl],[data-vudel],[data-vdlfile],[data-vedit]');
     // järjestuse lukk vabaneb klõpsuga mujal
     if (FREEZE.size) {
       var inside = ev.target.closest('[data-vfrz]'), key = inside && inside.dataset.vfrz;
@@ -56,6 +56,8 @@
     }
     if (!t) return;
     var ds = t.dataset;
+    if (ds.vedit !== undefined) { setEdit(!EDIT); return; }
+    if (!EDIT && (ds.vadj || ds.vadjreset || ds.vkov || ds.vep || ds.vsnaps || ds.vnew !== undefined)) return;
     if (ds.vclose !== undefined) { var dlg = t.closest('dialog'); if (dlg) dlg.close(); return; }
     if (ds.vstep) { vstep = +ds.vstep; lsSet(STEP_KEY, vstep); frzRerender(); return; }
     if (ds.vadj) { onAdj(ds.vadj, 1 + (+ds.f) * vstep / 100, false); return; }
@@ -223,6 +225,7 @@
 
   window.VM = {
     page: function () { return page; },
+    editOn: editOn,
     setHash: setHash,
     go: go,
     openHistory: openHistory,

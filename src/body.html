@@ -7,8 +7,9 @@
       <a href="#kov" data-vpage="kov">Kohalikud</a>
       <a href="#ep" data-vpage="ep">Europarlament</a>
       <a href="#kandidaadid" data-vpage="cand">Kandidaadid</a>
-      <a href="#valimised" data-vpage="manage">Valimised</a>
+      <a href="#valimised" data-vpage="manage" class="edit-only">Valimised</a>
     </nav>
+    <button type="button" class="editsw" id="editSw" role="switch" aria-checked="false" data-vedit><span class="editsw-track" aria-hidden="true"><span class="editsw-knob"></span></span><span class="editsw-lbl">Muutmine</span></button>
   </div>
 </header>
 
@@ -25,10 +26,10 @@
     <div class="toolbar">
       <span id="yearSelBox"></span>
       <span id="dataBadge" class="badge">2023 ametlikud hääled</span>
-      <button type="button" class="btn" id="btnReset">Taasta 2023 andmed</button>
-      <button type="button" class="btn" id="btnZero">Nulli kõik hääled</button>
-      <button type="button" class="btn" data-vsnaps="rk">Vahetulemused</button>
-      <button type="button" class="btn" id="btnData">Andmed (JSON)</button>
+      <button type="button" class="btn edit-only" id="btnReset">Taasta 2023 andmed</button>
+      <button type="button" class="btn edit-only" id="btnZero">Nulli kõik hääled</button>
+      <button type="button" class="btn edit-only" data-vsnaps="rk">Vahetulemused</button>
+      <button type="button" class="btn edit-only" id="btnData">Andmed (JSON)</button>
     </div>
   </div>
 </header>

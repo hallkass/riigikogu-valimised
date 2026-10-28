@@ -123,6 +123,30 @@
       persistent: function () { return persistent; }
     };
   })();
+  // ---------- muutmise režiim: vaikimisi väljas, siis on leht ainult tulemuste vaatamiseks
+  var EDIT = false;
+  try { EDIT = localStorage.getItem('vm-edit') === 'true'; } catch (e) { EDIT = false; }
+  function editOn() { return EDIT; }
+  function applyEditUI() {
+    document.body.classList.toggle('edit-on', EDIT);
+    var b = byId('editSw');
+    if (b) {
+      b.setAttribute('aria-checked', String(EDIT));
+      b.title = EDIT ? 'Muutmine on sees: hääli saab muuta, uusi valimisi lisada ja vahetulemusi salvestada. Klõpsa, et välja lülitada.' : 'Muutmine on väljas: leht näitab tulemusi. Klõpsa, et hääli muuta, uusi valimisi lisada ja vahetulemusi salvestada.';
+    }
+  }
+  function setEdit(on) {
+    EDIT = !!on;
+    try { localStorage.setItem('vm-edit', String(EDIT)); } catch (e) { /* pole saadaval */ }
+    applyEditUI();
+    unfreezeAll();
+    var d = byId('vmDlg'); if (d && d.open) d.close();
+    var a = rkApp(); if (a && a.refreshEdit) a.refreshEdit();
+    if (page === 'kov' && KS.E) rerenderKovKeepFocus();
+    else if (page === 'ep' && ES.E) rerenderEpKeepFocus();
+    else if (page === 'home') renderHome();
+    else if (page === 'manage') renderManage();
+  }
   function lsGet(k, d) { try { var v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } }
   function lsSet(k, v) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } }
 
@@ -227,12 +251,14 @@
   var STEP_KEY = 'vm-step';
   var vstep = lsGet(STEP_KEY, 10); if ([1, 5, 10].indexOf(vstep) < 0) vstep = 10;
   function stepperHTML() {
+    if (!EDIT) return '';
     return '<div class="stepper" role="group" aria-label="Muutmise samm"><span>Samm</span>' + [1, 5, 10].map(function (s) {
       return '<button type="button" data-vstep="' + s + '" aria-pressed="' + (vstep === s) + '">' + s + '%</button>';
     }).join('') + '</div>';
   }
   // adjHTML: scope = sõne, mis määrab muudetava hulga (nt "kn:P3", "ku:12:45", "ep:4"); cur ja base = praegused ja ametlikud hääled
   function adjHTML(scope, label, cur, base) {
+    if (!EDIT) return '';
     var idb = 'vadj-' + scope.replace(/[^a-zA-Z0-9]/g, '_');
     var h = '<span class="adj"><button type="button" class="adjb" id="' + idb + '-m" data-vadj="' + esc(scope) + '" data-f="-1" aria-label="' + esc(label) + ' hääled −' + vstep + '%">−' + vstep + '%</button>' +
       '<button type="button" class="adjb" id="' + idb + '-p" data-vadj="' + esc(scope) + '" data-f="1" aria-label="' + esc(label) + ' hääled +' + vstep + '%">+' + vstep + '%</button>';

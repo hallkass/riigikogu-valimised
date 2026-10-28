@@ -18,6 +18,7 @@ Interaktiivne veebileht Riigikogu, kohalike omavalitsuste volikogude ja Euroopa 
 
 ## Häälte muutmine, uued valimised ja vahetulemused
 
+- Lehe ülaosas olev lüliti **„Muutmine“** lülitab kõik muutmise võimalused sisse või välja. Vaikimisi on see väljas: siis näitab leht tulemusi ilma muutmisnuppude ja -väljadeta. Valik jääb brauserisse meelde.
 - Iga erakonna/nimekirja hääli saab muuta protsendi kaupa (samm 1%, 5% või 10%) kogu riigis, omavalitsuses või ringkonnas; muutus jaguneb kandidaatidele proportsionaalselt. Iga kandidaadi hääli saab muuta ka otse.
 - **Uued valimised**: vali liik, nimi, kuupäev ja alus (olemasolevad valimised ametlike, enda muudetud või nullitud häältega, või JSON-fail). Uued valimised ilmuvad vastava lehe valikusse.
 - **Vahetulemused**: iga valimise lehel nupp „Vahetulemused“ salvestab häälte hetkeseisu (nt valimisõhtul pärast iga laekunud tulemust), näitab mandaatide muutust võrreldes praegusega ja laseb seisu uuesti avada. Hääli saab sisestada ka tekstina (read `kandidaadi number;hääled`, kohalikel `EHAK-kood:number;hääled`).
