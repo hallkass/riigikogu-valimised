@@ -215,6 +215,22 @@ tr.rowlink:hover td { background: var(--sunk); }
 .htable td .tag { margin-top: 3px; margin-right: 6px; }
 .htable td .link { margin-top: 3px; }
 .hrow-empty td { color: var(--ink-3); background: var(--sunk); }
+.hctxbar { display: flex; justify-content: flex-end; margin-bottom: -4px; }
+.htable tr.hdata td { border-bottom: 0; }
+.hctxrow td { padding-top: 0; padding-bottom: .35rem; }
+.hctxrow details { position: sticky; left: 0; max-width: calc(100vw - 56px); }
+.hctx summary { cursor: pointer; font-size: .8rem; color: var(--accent); padding: 2px 0 6px; width: fit-content; }
+.hctx summary:hover { text-decoration: underline; text-underline-offset: 2px; }
+.hctxgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 330px), 1fr)); gap: 10px; padding: 4px 0 10px; }
+.hpcard { border: 1px solid var(--rule); border-left: 4px solid var(--pc); border-radius: 6px; background: var(--surface); padding: 7px 9px 4px; min-width: 0; }
+.hpc-h { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 10px; align-items: baseline; font-size: .84rem; margin-bottom: 2px; }
+.hmini { font-size: .76rem; }
+.hmini th, .hmini td { padding: .22rem .3rem; }
+.hmini thead th { font-size: .64rem; }
+.hmini td .g { width: 10px; height: 10px; vertical-align: -1px; }
+.hmini .plink { font-weight: 500; }
+.hmini tr.self td { background: var(--accent-soft); }
+.hmini tr.gap td { border-top: 1px dashed var(--rule-2); }
 .hsugg { border-top: 1px solid var(--rule); padding: 10px 0 4px; }
 .hsugg ul { margin: 4px 0 0; padding-left: 1.2em; display: grid; gap: 3px; }
 .hdet { margin-top: 10px; }
@@ -2276,6 +2292,29 @@ textarea.inp { min-height: 260px; font: .8rem/1.4 var(--f-mono); resize: vertica
       d: r[3], dn: E0.dn.get(r[3]) || '', nr: r[0], votes: r[4], distPos: r[5], natPos: r[6], el: r[7], rank: rank,
       shPD: pdv ? r[4] / pdv : null, shD: dv ? r[4] / dv : null, shPN: pv0 ? r[4] / pv0 : null, shN: E0.valid ? r[4] / E0.valid : null };
   }
+  // Ringkonna võrdlus: iga nimekirja 7 enim hääli saanut antud aastal ja ringkonnas
+  var HCTX_OPEN = new Set();
+  function histCtxHTML(y, d, selfIdx) {
+    var E0 = HIST.e[y], dv = E0.dv.get(d) || 0, groups = new Map();
+    E0.c.forEach(function (r, i) { if (r[3] !== d) return; if (!groups.has(r[2])) groups.set(r[2], []); groups.get(r[2]).push(i); });
+    var parties = Array.from(groups.keys()).map(function (k) {
+      var list = groups.get(k).slice().sort(function (a, b) { return (E0.c[b][4] - E0.c[a][4]) || ((E0.c[a][5] || 1e9) - (E0.c[b][5] || 1e9)) || (E0.c[a][0] - E0.c[b][0]); });
+      return { k: k, list: list, votes: list.reduce(function (s, i) { return s + E0.c[i][4]; }, 0) };
+    }).sort(function (a, b) { return (a.k < 0) - (b.k < 0) || (b.votes - a.votes); });
+    return '<div class="hctxgrid">' + parties.map(function (g) {
+      var p = g.k >= 0 ? E0.p[g.k] : null, hp = p ? hparty(p[0], p[1]) : { short: 'Üksikkandidaadid', color: IND.color };
+      var selfPos = g.list.indexOf(selfIdx);
+      var row = function (i, rank) {
+        var r = E0.c[i], self = i === selfIdx;
+        var nm = self ? '<b>' + esc(r[1]) + '</b>' : '<button type="button" class="plink" data-hname="' + esc(r[1]) + '" data-hbirth="' + esc(r[8] || '') + '">' + esc(r[1]) + '</button>';
+        return '<tr class="' + (self ? 'self' : '') + (rank > 7 ? ' gap' : '') + '"><td class="num">' + rank + '.</td><td>' + (r[7] ? glyph('PDC'.charAt(r[7] - 1), hp.color) + ' ' : '') + nm + '</td><td class="num">' + (r[5] || '–') + '</td><td class="num">' + nf0.format(r[4]) + '</td><td class="num">' + pct1(dv ? r[4] / dv : null) + '</td><td class="num">' + (p ? pct1(g.votes ? r[4] / g.votes : null) : '–') + '</td></tr>';
+      };
+      var rows = g.list.slice(0, 7).map(function (i, k) { return row(i, k + 1); }).join('');
+      if (selfPos >= 7) rows += row(selfIdx, selfPos + 1);
+      return '<div class="hpcard" style="--pc:' + hp.color + '"><div class="hpc-h"><span class="pname" title="' + esc(p ? p[1] : 'Üksikkandidaadid') + '"><span class="sw"></span><b>' + esc(hp.short) + '</b></span><span class="small muted tnum">' + nf0.format(g.votes) + ' häält · ' + pct1(dv ? g.votes / dv : null) + '</span></div>' +
+        '<table class="tbl hmini"><thead><tr><th class="num">#</th><th>Kandidaat</th><th class="num" title="Koht ringkonnanimekirjas">Nimek.</th><th class="num">Hääli</th><th class="num" title="Osakaal ringkonna kehtivatest häältest">% ringk.</th><th class="num" title="Osakaal erakonna häältest ringkonnas">% erak.</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+    }).join('') + '</div>';
+  }
   function optLabel(x) { var m = histMetrics(x.y, x.i); return m.party + ', ringkond ' + m.d + ', nr ' + m.nr + ', ' + nf0.format(m.votes) + ' häält'; }
   function renderHistory() {
     var el = byId('panel-ajalugu');
@@ -2335,6 +2374,7 @@ textarea.inp { min-height: 260px; font: .8rem/1.4 var(--f-mono); resize: vertica
     else if (g.undated.length) notes.push('Sünniajata kandideerimised on seotud nime järgi' + (ambiguous ? '; kui samal aastal on mitu sama nimega kandidaati, vali rea juures õige' : '') + '.');
     if (rows.some(function (x) { return x.alias; })) notes.push('Osa kandideerimisi on teise nimekujuga, kuid sama sünniajaga; nende juures on näidatud tollane nimi.');
     if (notes.length) h += '<p class="small muted hnote">' + notes.join(' ') + '</p>';
+    h += '<div class="hctxbar"><button type="button" class="link small" data-hctxall="1">Ava või sulge kõigi aastate ringkonna võrdlus</button></div>';
     h += '<div class="scroll-x"><table class="tbl htable"><thead><tr><th class="num">Aasta</th><th>Nimekiri</th><th>Ringkond</th><th class="num" title="Koht erakonna ringkonnanimekirjas / üleriigilises nimekirjas">Koht nimekirjas</th><th class="num">Hääli</th><th class="num" title="Koht erakonna kandidaatide seas ringkonnas häälte arvu järgi">Häälte arvult</th><th class="num" title="Kandidaadi hääled erakonna häältest selles ringkonnas">% erakonnast ringk.</th><th class="num" title="Kandidaadi hääled ringkonna kehtivatest häältest">% ringkonnast</th><th class="num" title="Kandidaadi hääled erakonna häältest üle Eesti">% erakonnast Eestis</th><th class="num" title="Kandidaadi hääled kõigist kehtivatest häältest">% Eestist</th><th>Tulemus</th></tr></thead><tbody>';
     rows.forEach(function (row) {
       var selHTML = '';
@@ -2351,7 +2391,10 @@ textarea.inp { min-height: 260px; font: .8rem/1.4 var(--f-mono); resize: vertica
       if (row.alias) extra = '<span class="tag">nime all ' + esc(row.x.r[1]) + '</span>';
       else if (!row.fixed && hs.pk !== '*') extra = '<span class="tag">seotud nime järgi</span>';
       var ctl = selHTML ? (row.opts.length > 1 || hs.pk === '*' ? selHTML : '<button type="button" class="link small" data-hunlink="' + row.y + '">pole see isik</button>') : '';
-      h += '<tr><td class="num"><b>' + row.y + '</b></td><td><div class="pname" style="--pc:' + m.color + '"><span class="sw"></span><span>' + esc(m.party) + '</span></div>' + extra + ctl + '</td><td>' + m.d + ' · ' + esc(m.dn) + '</td><td class="num">' + (m.distPos || '–') + ' / ' + (m.natPos || '–') + '</td><td class="num">' + nf0.format(m.votes) + '<span class="bar" style="--pc:' + m.color + '"><i style="width:' + (m.votes / mx * 100).toFixed(1) + '%"></i></span></td><td class="num">' + (m.rank || '–') + '</td><td class="num">' + pct1(m.shPD) + '</td><td class="num">' + pct1(m.shD) + '</td><td class="num">' + pct1(m.shPN) + '</td><td class="num">' + nf2.format(m.shN * 100) + '%</td><td>' + el + '</td></tr>';
+      h += '<tr class="hdata"><td class="num"><b>' + row.y + '</b></td><td><div class="pname" style="--pc:' + m.color + '"><span class="sw"></span><span>' + esc(m.party) + '</span></div>' + extra + ctl + '</td><td>' + m.d + ' · ' + esc(m.dn) + '</td><td class="num">' + (m.distPos || '–') + ' / ' + (m.natPos || '–') + '</td><td class="num">' + nf0.format(m.votes) + '<span class="bar" style="--pc:' + m.color + '"><i style="width:' + (m.votes / mx * 100).toFixed(1) + '%"></i></span></td><td class="num">' + (m.rank || '–') + '</td><td class="num">' + pct1(m.shPD) + '</td><td class="num">' + pct1(m.shD) + '</td><td class="num">' + pct1(m.shPN) + '</td><td class="num">' + nf2.format(m.shN * 100) + '%</td><td>' + el + '</td></tr>';
+      var drank = 1; HIST.e[row.y].c.forEach(function (o) { if (o[3] === m.d && o[4] > m.votes) drank++; });
+      var ck = row.y + '|' + m.d, op = HCTX_OPEN.has(ck);
+      h += '<tr class="hctxrow"><td colspan="11"><details class="hctx" data-hctx="' + ck + '|' + row.x.i + '"' + (op ? ' open' : '') + '><summary>Ringkonna nr ' + m.d + ' kandidaadid ' + row.y + ': iga nimekirja 7 enim hääli saanut · ' + esc(row.x.r[1]) + ' oli ringkonnas häälte arvult ' + drank + '.</summary>' + (op ? histCtxHTML(row.y, m.d, row.x.i) : '') + '</details></td></tr>';
     });
     h += '</tbody></table></div>';
     if (person) {
@@ -2526,7 +2569,7 @@ textarea.inp { min-height: 260px; font: .8rem/1.4 var(--f-mono); resize: vertica
 
   // ---------- sündmused
   document.addEventListener('click', function (ev) {
-    var t = ev.target.closest('[data-open],[data-district],[data-tab],[data-step],[data-adj],[data-adjreset],[data-zroot],[data-zc],[data-zu],[data-zp],[data-zsort],[data-emetric],[data-hnk],[data-hpk],[data-hy],[data-hload],[data-hname],[data-hunlink],[data-hlinkadd],[data-hlinkdel],[data-hist],[data-leave],[data-unleave],[data-restore],[data-sp],[data-jump],[data-close],[data-apply7],#simClear,#zeroDistrict,#btnReset,#btnZero,#btnData,#dataCopy,#dataApply');
+    var t = ev.target.closest('[data-open],[data-district],[data-tab],[data-step],[data-adj],[data-adjreset],[data-zroot],[data-zc],[data-zu],[data-zp],[data-zsort],[data-emetric],[data-hnk],[data-hpk],[data-hy],[data-hload],[data-hname],[data-hunlink],[data-hlinkadd],[data-hlinkdel],[data-hctxall],[data-hist],[data-leave],[data-unleave],[data-restore],[data-sp],[data-jump],[data-close],[data-apply7],#simClear,#zeroDistrict,#btnReset,#btnZero,#btnData,#dataCopy,#dataApply');
     if (!t) {
       var qr = byId('qres');
       if (qr && !qr.hidden && !ev.target.closest('.grow')) qr.hidden = true;
@@ -2553,6 +2596,7 @@ textarea.inp { min-height: 260px; font: .8rem/1.4 var(--f-mono); resize: vertica
     if (ds.hload) { loadYear(+ds.hload); return; }
     if (ds.hname !== undefined) { openHistory(ds.hname, ds.hbirth || ''); return; }
     if (ds.hunlink) { var kk = state.hist.nk + '|' + (state.hist.pk || '-'); HSEL[kk] = HSEL[kk] || {}; HSEL[kk][ds.hunlink] = -1; hsave(); byId('hperson').innerHTML = histPersonHTML(); return; }
+    if (ds.hctxall) { var dts = Array.prototype.slice.call(document.querySelectorAll('#hperson details.hctx')); var anyClosed = dts.some(function (x) { return !x.open; }); dts.forEach(function (x) { x.open = anyClosed; }); return; }
     if (ds.hlinkadd || ds.hlinkdel) { var kl = state.hist.nk + '|' + state.hist.pk; HSEL[kl] = HSEL[kl] || {}; var ls = HSEL[kl].links || []; if (ds.hlinkadd) { if (ls.indexOf(ds.hlinkadd) < 0) ls.push(ds.hlinkadd); } else ls = ls.filter(function (x) { return x !== ds.hlinkdel; }); HSEL[kl].links = ls; hsave(); byId('hperson').innerHTML = histPersonHTML(); return; }
     if (ds.hist) { var hc = candMap.get(+ds.hist); if (hc) { closeDialogs(); openHistory(hc.name, birthOf(hc.nr)); } return; }
     if (ds.leave) { var n = +ds.leave; if (state.leaves.indexOf(n) < 0) state.leaves.push(n); refresh(); return; }
@@ -2586,6 +2630,15 @@ textarea.inp { min-height: 260px; font: .8rem/1.4 var(--f-mono); resize: vertica
     } else if (t.id === 'q') search(t.value);
     else if (t.id === 'hq') histSearch(t.value);
   });
+  document.addEventListener('toggle', function (ev) {
+    var dt = ev.target;
+    if (!dt.matches || !dt.matches('details.hctx')) return;
+    var parts = dt.dataset.hctx.split('|'), ck = parts[0] + '|' + parts[1];
+    if (dt.open) {
+      HCTX_OPEN.add(ck);
+      if (!dt.querySelector('.hctxgrid')) dt.insertAdjacentHTML('beforeend', histCtxHTML(+parts[0], +parts[1], +parts[2]));
+    } else HCTX_OPEN.delete(ck);
+  }, true);
   document.addEventListener('change', function (ev) {
     var t = ev.target;
     if (t.matches('input[data-v]')) { var c = candMap.get(+t.dataset.v); if (c && String(c.votes) !== t.value) t.value = c.votes; }

@@ -13,6 +13,7 @@ Interaktiivne veebileht, millega saab muuta kandidaatide hääli ringkonniti ja 
 - Süvavaade: erakond → ringkondade edetabel → kandidaatide ja omavalitsuste edetabel → jaoskondade edetabel; iga kandidaadi hääled omavalitsuste ja jaoskondade kaupa (omavalitsuste ja jaoskondade andmed 2023. aasta kohta).
 - Paber- ja e-hääled erakondade ja maakondade kaupa (2023, e-hääled valija elukoha järgi).
 - Ajalugu: kandidaadi kandideerimise ajalugu 1992–2023 (aasta, nimekiri, ringkond, koht ringkonna- ja üleriigilises nimekirjas, hääled, koht erakonna kandidaatide seas ning osakaal erakonna ja ringkonna häältest ja üle Eesti) ning iga aasta tulemused ja valitud liikmed.
+- Iga aasta juures ringkonna võrdlus: kõigi nimekirjade 7 enim hääli saanud kandidaati koos koha ringkonnanimekirjas, häälte arvu ning osakaaluga ringkonna ja erakonna häältest.
 - Iga valitud liikme asendusliikmete järjekord: sama erakonna ringkonna asendusliikmed, seejärel erakonna üleriigiline nimekiri, seejärel lisamandaat.
 - Volituste peatumise simulatsioon: märgi liikmeid lahkunuks (nt ministriks nimetamine) ja vaata, kes asub nende asemele.
 - Kogu arvutuskäik: lihtkvoodid, ringkonnamandaadid koos 75% jäägi reegliga, kompensatsioonimandaatide võrdlusarvud ja lisamandaatide tabel.
