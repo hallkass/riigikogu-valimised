@@ -1,0 +1,187 @@
+<header class="site">
+  <div class="wrap site-row">
+    <a class="logo" href="#avaleht" aria-label="Eesti valimiste mudel, avaleht"><svg viewBox="-1.1 -1.1 2.2 1.2" aria-hidden="true"><path d="M-1 0A1 1 0 0 1 1 0H.55A.55 .55 0 0 0 -.55 0Z" fill="var(--accent)"/></svg><span>Valimiste mudel</span></a>
+    <nav class="snav" aria-label="Valimised">
+      <a href="#avaleht" data-vpage="home">Avaleht</a>
+      <a href="#rk" data-vpage="rk">Riigikogu</a>
+      <a href="#kov" data-vpage="kov">Kohalikud</a>
+      <a href="#ep" data-vpage="ep">Europarlament</a>
+      <a href="#kandidaadid" data-vpage="cand">Kandidaadid</a>
+      <a href="#valimised" data-vpage="manage">Valimised</a>
+    </nav>
+  </div>
+</header>
+
+<div class="page" id="page-home" hidden><main class="wrap home" id="homeMain"></main></div>
+
+<div class="page" id="page-rk" hidden>
+<header class="top">
+  <div class="wrap top-row">
+    <div class="brand">
+      <p class="eyebrow">Riigikogu valimise seadus § 62, § 75, § 76 · Riigikogu liikme staatuse seadus § 12</p>
+      <h1>Riigikogu valimised</h1>
+      <p class="lede">Muuda kandidaatide hääli ringkonniti ja vaata, kes saab Riigikokku, millise mandaadiga ning kes on iga valitud liikme asendusliikmed õiges järjekorras.</p>
+    </div>
+    <div class="toolbar">
+      <span id="yearSelBox"></span>
+      <span id="dataBadge" class="badge">2023 ametlikud hääled</span>
+      <button type="button" class="btn" id="btnReset">Taasta 2023 andmed</button>
+      <button type="button" class="btn" id="btnZero">Nulli kõik hääled</button>
+      <button type="button" class="btn" data-vsnaps="rk">Vahetulemused</button>
+      <button type="button" class="btn" id="btnData">Andmed (JSON)</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="summary" aria-label="Valimistulemus">
+    <div class="card hemi-card">
+      <svg class="hemi" id="hemi" viewBox="-1.1 -1.1 2.2 1.17" role="img" aria-label="Riigikogu kohtade jaotus"></svg>
+      <div class="legend" id="legend"></div>
+      <div class="warns" id="warns"></div>
+      <div class="kpis" id="kpis"></div>
+    </div>
+    <div class="card party-card">
+      <div class="ptools" id="ptools"></div>
+      <div class="scroll-x"><table class="tbl ptable" id="ptable"></table></div>
+    </div>
+  </section>
+
+  <nav class="tabs" role="tablist" aria-label="Vaated">
+    <button type="button" class="tab" role="tab" id="tab-haaled" aria-controls="panel-haaled" data-tab="haaled">Hääled ringkonniti</button>
+    <button type="button" class="tab" role="tab" id="tab-syvavaade" aria-controls="panel-syvavaade" data-tab="syvavaade">Süvavaade</button>
+    <button type="button" class="tab" role="tab" id="tab-ehaaled" aria-controls="panel-ehaaled" data-tab="ehaaled">Paber- ja e-hääled</button>
+    <button type="button" class="tab" role="tab" id="tab-liikmed" aria-controls="panel-liikmed" data-tab="liikmed">Valitud ja asendajad</button>
+    <button type="button" class="tab" role="tab" id="tab-jaotus" aria-controls="panel-jaotus" data-tab="jaotus">Mandaatide jaotus</button>
+    <button type="button" class="tab" role="tab" id="tab-asendusliikmed" aria-controls="panel-asendusliikmed" data-tab="asendusliikmed">Asendusliikmete nimekirjad</button>
+    <button type="button" class="tab" role="tab" id="tab-kontroll" aria-controls="panel-kontroll" data-tab="kontroll">Kontroll</button>
+    <button type="button" class="tab" role="tab" id="tab-reeglid" aria-controls="panel-reeglid" data-tab="reeglid">Reeglid</button>
+  </nav>
+
+  <section class="panel" role="tabpanel" id="panel-haaled" aria-labelledby="tab-haaled"></section>
+  <section class="panel" role="tabpanel" id="panel-syvavaade" aria-labelledby="tab-syvavaade" hidden></section>
+  <section class="panel" role="tabpanel" id="panel-ehaaled" aria-labelledby="tab-ehaaled" hidden></section>
+  <section class="panel" role="tabpanel" id="panel-liikmed" aria-labelledby="tab-liikmed" hidden></section>
+  <section class="panel" role="tabpanel" id="panel-jaotus" aria-labelledby="tab-jaotus" hidden></section>
+  <section class="panel" role="tabpanel" id="panel-asendusliikmed" aria-labelledby="tab-asendusliikmed" hidden></section>
+  <section class="panel" role="tabpanel" id="panel-kontroll" aria-labelledby="tab-kontroll" hidden></section>
+  <section class="panel" role="tabpanel" id="panel-reeglid" aria-labelledby="tab-reeglid" hidden>
+    <div class="rules">
+      <p class="panel-intro">Mudel arvutab tulemuse Riigikogu valimise seaduse (<a href="https://www.riigiteataja.ee/akt/RKVS" target="_blank" rel="noopener">RKVS</a>, kehtiv sõnastus 01.10.2024; tulemuste kindlakstegemise sätted on samad, mis 2023. aasta valimistel) ja Riigikogu liikme staatuse seaduse (<a href="https://www.riigiteataja.ee/akt/RKLS" target="_blank" rel="noopener">RKLS</a>) järgi. Mudel ei ole ametlik; ametlikud tulemused avaldab <a href="https://www.valimised.ee" target="_blank" rel="noopener">valimised.ee</a>.</p>
+      <ol>
+        <li><b>Mandaadid ringkondade vahel (RKVS § 7).</b>
+          <p>101 mandaati jaotatakse 12 ringkonna vahel valijate arvu järgi. Valijate koguarv jagatakse 101-ga, iga ringkonna valijate arv jagatakse saadud arvuga, ringkond saab tulemuse täisosa ja ülejäänud mandaadid antakse suurimate jääkidega ringkondadele. Valijate arv võetakse rahvastikuregistrist valimiste väljakuulutamise kuu 1. kuupäeva seisuga.</p></li>
+        <li><b>Lihtkvoot (§ 62 lg 1).</b>
+          <p>Ringkonna kehtivate häälte arv jagatakse ringkonna mandaatide arvuga.</p></li>
+        <li><b>Isikumandaat (§ 62 lg 2).</b>
+          <p>Valituks osutub kandidaat, kelle häälte arv on lihtkvoodist suurem või sellega võrdne. See kehtib ka üksikkandidaadile ja 5% künnisest alla jäänud erakonna kandidaadile.</p></li>
+        <li><b>5% künnis (§ 62 lg 3–4).</b>
+          <p>Ringkonna- ja kompensatsioonimandaate saavad ainult erakonnad, kelle kandidaadid kogusid üle Eesti kokku vähemalt 5% kehtivatest häältest.</p></li>
+        <li><b>Ringkonnamandaat (§ 62 lg 3).</b>
+          <p>Erakonna kandidaatide hääled ringkonnas liidetakse. Erakond saab nii mitu mandaati, mitu korda summa ületab lihtkvoodi, ja ühe juurde, kui jääk on vähemalt 75% lihtkvoodist. Mandaadi saab ka erakond, kelle summa on 75–100% lihtkvoodist. Isikumandaadid arvatakse erakonna mandaatide hulka. Mandaadid saavad häälte arvu järgi eespool olevad kandidaadid, kellele anti vähemalt 10% lihtkvoodist; võrdse häälte arvu korral see, kes on erakonna üleriigilises nimekirjas eespool. Mandaadid, mida ei saa täita, lähevad kompensatsiooniks.</p></li>
+        <li><b>Kompensatsioonimandaadid (§ 62 lg 4–8).</b>
+          <p>Ringkondades jaotamata mandaadid jaotatakse modifitseeritud d’Hondti meetodil jagajatega 1; 2<sup>0,9</sup>; 3<sup>0,9</sup> jne. Iga erakonna puhul jäetakse vahele nii mitu jada esimest liiget, kui mitu mandaati erakond sai ringkondades. Võrdsete võrdlusarvude korral saab mandaadi erakond, kelle kandidaadid paiknevad ringkonna kandidaatide koondnimekirjas tagapool. Erakonna sees saavad mandaadi üleriigilises nimekirjas eespool olevad valimata kandidaadid, kellele anti vähemalt 5% oma ringkonna lihtkvoodist. Kui neid ei jätku, saab mandaadi suurima lihtkvoodi-protsendiga kandidaat (võrdsuse korral nimekirjas eespool olev). Erakond ei saa rohkem mandaate, kui tal on kandidaate.</p></li>
+        <li><b>Välja langenud kandidaat (§ 62 lg 9).</b>
+          <p>Kui kandidaadi registreerimine tühistatakse või ta sureb pärast eelhääletamise algust, ei saa teda valida. Erakonna kandidaadi hääled jäävad erakonnale (tühistatud registreerimise korral ainult välisriigis antud hääled), üksikkandidaadi hääli tulemuse kindlakstegemisel ei arvestata. Mudelis saab kandidaadi välja langenuks märkida kandidaadi kaardil.</p></li>
+        <li><b>Asendusliikmed (§ 75).</b>
+          <p>Asendusliikmed registreeritakse ainult 5% künnise ületanud erakondadele. Ringkonnas valitud liikmete asendusliikmed on sama erakonna samas ringkonnas valimata jäänud kandidaadid, kellele anti vähemalt 10% lihtkvoodist, häälte arvu järjekorras (võrdsuse korral ringkonnanimekirjas eespool olev). Ametlik praktika (2023) registreerib need ainult ringkondades, kus erakonnal on ringkonnas valitud liikmeid. Kompensatsioonimandaadiga valitud liikmete asendusliikmed on erakonna kõik valimata kandidaadid: esmalt need, kellele anti vähemalt 5% oma ringkonna lihtkvoodist, erakonna üleriigilise nimekirja järjekorras, seejärel ülejäänud lihtkvoodi-protsendi järgi (võrdsuse korral üleriigilises nimekirjas eespool olev).</p></li>
+        <li><b>Asendamise järjekord (RKLS § 11–12).</b>
+          <p>Ringkonnas valitud liikme asemele asub sama erakonna sama ringkonna esimene asendusliige. Kui neid enam ei ole, asub tema asemele erakonna üleriigilise nimekirja esimene asendusliige. Kompensatsioonimandaadiga valitud liikme asemele asub üleriigilise nimekirja esimene asendusliige. Üksikkandidaadi asemele ning siis, kui nimekirjas asendusliikmeid enam pole, asub lisamandaadi alusel määratud asendusliige: lisamandaat läheb erakonnale, kelle võrdlusarv on kompensatsioonimandaatide järel järgmine suurim (§ 76; võrdsuse korral rohkem hääli saanud erakond). Kui liikme volitused taastuvad, lõpevad viimasena samast nimekirjast Riigikokku asunud asendusliikme volitused.</p></li>
+        <li><b>Varasemad valimised.</b>
+          <p>Mandaatide jaotamise reeglid (§ 62) on sisult samad alates 2002. aasta Riigikogu valimise seadusest, st 2003.–2023. aasta valimistel; muutunud on ainult võrdsete võrdlusarvude lahendamise reegel. Seetõttu saab need aastad mudelis ümber arvutada ja vahekaart „Kontroll“ võrdleb tulemust selle aasta ametliku tulemusega. 1992., 1995. ja 1999. aastal kehtisid teised reeglid: 75% jäägi reeglit ega kompensatsioonimandaadi kandidaadi 5% nõuet ei olnud ja kompensatsioonimandaadid jagati üleriigilise nimekirja järjekorras; ringkonnamandaadi 10% nõue kehtis 1995 ja 1999, aga mitte 1992. Neid aastaid arvutab mudel vaikimisi tolleaegsete reeglitega (päisest saab valida ka kehtivad reeglid); 1992 ja 1995 osalesid ka valimisliidud. Asendusliikmete registreerimise reeglid (§ 75) on praegusel kujul alates 2017. aastast.</p></li>
+      </ol>
+    </div>
+  </section>
+</main>
+</div>
+
+<div class="page" id="page-kov" hidden>
+<header class="top">
+  <div class="wrap top-row">
+    <div class="brand">
+      <p class="eyebrow">Kohaliku omavalitsuse volikogu valimise seadus § 56, § 56¹, § 69, § 70</p>
+      <h1>Kohalikud valimised</h1>
+      <p class="lede">Iga omavalitsuse volikogu koosseis, mandaatide liigid ja asendusliikmed. Muuda nimekirjade ja kandidaatide hääli ning vaata, kuidas koosseis muutub — kogu Eesti, omavalitsuse, ringkonna ja kandidaadi tasemel.</p>
+    </div>
+    <div class="toolbar" id="kovTools"></div>
+  </div>
+</header>
+<main class="wrap" id="kovMain"></main>
+</div>
+
+<div class="page" id="page-ep" hidden>
+<header class="top">
+  <div class="wrap top-row">
+    <div class="brand">
+      <p class="eyebrow">Euroopa Parlamendi valimise seadus § 61, § 73, § 74</p>
+      <h1>Europarlamendi valimised</h1>
+      <p class="lede">Eestile jaotatud Euroopa Parlamendi kohad d’Hondti meetodil, kandidaatide järjestus häälte järgi ja asendusliikmed.</p>
+    </div>
+    <div class="toolbar" id="epTools"></div>
+  </div>
+</header>
+<main class="wrap" id="epMain"></main>
+</div>
+
+<div class="page" id="page-cand" hidden>
+<header class="top">
+  <div class="wrap top-row">
+    <div class="brand">
+      <p class="eyebrow">Riigikogu · kohalikud volikogud · Europarlament</p>
+      <h1>Kandidaadid</h1>
+      <p class="lede">Otsi kandidaati ja vaata kõiki tema kandideerimisi ajalises järjekorras: nimekiri, koht nimekirjas, hääled, osakaal ja tulemus. Valimiste liigi järgi saab filtreerida.</p>
+    </div>
+  </div>
+</header>
+<main class="wrap" id="candMain"></main>
+</div>
+
+<div class="page" id="page-manage" hidden>
+<header class="top">
+  <div class="wrap top-row">
+    <div class="brand">
+      <p class="eyebrow">Oma valimised ja vahetulemused</p>
+      <h1>Valimised</h1>
+      <p class="lede">Lisa uusi valimisi olemasolevate põhjal või failist ning halda salvestatud vahetulemusi.</p>
+    </div>
+  </div>
+</header>
+<main class="wrap" id="manageMain"></main>
+</div>
+
+<footer class="foot">
+  <div class="wrap">Andmed: Riigi valimisteenistus — <a href="https://www.valimised.ee" target="_blank" rel="noopener">valimised.ee</a>, <a href="https://opendata.valimised.ee/api/" target="_blank" rel="noopener">avaandmed</a> ja varasemate valimiste arhiiv. Seadused: <a href="https://www.riigiteataja.ee/akt/RKVS" target="_blank" rel="noopener">RKVS</a>, <a href="https://www.riigiteataja.ee/akt/RKLS" target="_blank" rel="noopener">RKLS</a>, <a href="https://www.riigiteataja.ee/akt/KOVVS" target="_blank" rel="noopener">KOVVS</a>, <a href="https://www.riigiteataja.ee/akt/EPVS" target="_blank" rel="noopener">EPVS</a>. Mitteametlik mudel. Lähtekood: <a href="https://github.com/hallkass/riigikogu-valimised" target="_blank" rel="noopener">github.com/hallkass/riigikogu-valimised</a>.</div>
+</footer>
+
+<dialog id="candDlg" aria-labelledby="candDlgTitle"></dialog>
+
+<dialog id="dataDlg" aria-labelledby="dataDlgTitle">
+  <div class="dlg">
+    <div class="dlg-h">
+      <span></span>
+      <div><h2 id="dataDlgTitle">Andmed (JSON)</h2><p class="small muted">Kopeeri praegune mudel või kleebi sama vorminguga andmed (nt teiste valimiste kandidaadid) ja rakenda.</p></div>
+      <button type="button" class="btn btn-ghost" data-close>Sulge</button>
+    </div>
+    <div class="dlg-b">
+      <label class="vh" for="dataText">Mudeli andmed JSON-vormingus</label>
+      <textarea class="inp" id="dataText" spellcheck="false"></textarea>
+      <div class="small muted">Väljad: <span class="mono">districts[]</span> {nr, name, mandates, voters}, <span class="mono">parties[]</span> {id, name, short, color, lot — koht ringkonna koondnimekirjas}, <span class="mono">candidates[]</span> {nr, name, district, party (0 = üksikkandidaat), natPos, distPos, votes, out}.</div>
+      <div><label class="small" for="dataFile">Või loe failist: </label><input type="file" id="dataFile" accept=".json,application/json"></div>
+      <div id="dataMsg" role="status"></div>
+    </div>
+    <div class="dlg-f">
+      <button type="button" class="btn" id="dataCopy">Kopeeri</button>
+      <button type="button" class="btn btn-primary" id="dataApply">Rakenda andmed</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="vmDlg" aria-label="Üksikasjad"></dialog>
+
+<script type="application/json" id="rk-data">/*__DATA__*/</script>
+<script type="application/json" id="vm-manifest">/*__MANIFEST__*/</script>
+<script>/*__COMMON__*/</script>
+<script>/*__ENGINE__*/</script>
+<script>/*__ENGINE2__*/</script>
+<script>/*__VM__*/</script>
+<script>/*__APP__*/</script>
